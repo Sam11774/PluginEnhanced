@@ -1,0 +1,447 @@
+/*
+ * Copyright (c) 2024, RuneLiteAI Team
+ * All rights reserved.
+ */
+package net.runelite.client.plugins.runeliteai;
+
+import net.runelite.api.Client;
+import net.runelite.api.Player;
+import net.runelite.api.GameState;
+import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.events.GameTick;
+import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.MenuOptionClicked;
+
+import java.util.UUID;
+import java.util.Random;
+import java.util.concurrent.CompletableFuture;
+
+import static org.mockito.Mockito.*;
+
+/**
+ * Utility classes and methods for RuneliteAI testing
+ * Provides common mock objects, test data generators, and helper methods
+ */
+public class TestUtils {
+
+    private static final Random random = new Random();
+
+    /**
+     * Creates a configured Client mock for testing
+     */
+    public static Client createMockClient() {
+        Client client = mock(Client.class);
+        Player localPlayer = mock(Player.class);
+        
+        when(client.getLocalPlayer()).thenReturn(localPlayer);
+        when(client.getGameState()).thenReturn(GameState.LOGGED_IN);
+        when(localPlayer.getName()).thenReturn("TestPlayer");
+        when(localPlayer.getWorldLocation()).thenReturn(new WorldPoint(3200, 3200, 0));
+        when(localPlayer.getCombatLevel()).thenReturn(126);
+        
+        return client;
+    }
+
+    /**
+     * Creates a configured RuneliteAIConfig mock for testing
+     */
+    public static RuneliteAIConfig createMockConfig() {
+        RuneliteAIConfig config = mock(RuneliteAIConfig.class);
+        
+        when(config.enableDatabaseLogging()).thenReturn(true);
+        when(config.autoStartCollection()).thenReturn(true);
+        when(config.databaseHost()).thenReturn("localhost");
+        when(config.databasePort()).thenReturn(5432);
+        when(config.databaseName()).thenReturn("runelite_ai_test");
+        when(config.databaseUser()).thenReturn("test_user");
+        when(config.databasePassword()).thenReturn("test_password");
+        when(config.enablePerformanceMonitoring()).thenReturn(true);
+        when(config.collectPlayerData()).thenReturn(true);
+        when(config.collectWorldData()).thenReturn(true);
+        when(config.collectInputData()).thenReturn(true);
+        when(config.collectChatData()).thenReturn(true);
+        when(config.collectCombatData()).thenReturn(true);
+        when(config.collectEconomicData()).thenReturn(true);
+        
+        return config;
+    }
+
+    /**
+     * Creates a mock GameTick event
+     */
+    public static GameTick createMockGameTick() {
+        return mock(GameTick.class);
+    }
+
+    /**
+     * Creates a mock ChatMessage event with specified message
+     */
+    public static ChatMessage createMockChatMessage(String message) {
+        ChatMessage chatMessage = mock(ChatMessage.class);
+        when(chatMessage.getMessage()).thenReturn(message);
+        when(chatMessage.getType()).thenReturn(net.runelite.api.ChatMessageType.GAMEMESSAGE);
+        when(chatMessage.getName()).thenReturn("TestSender");
+        when(chatMessage.getTimestamp()).thenReturn((int)(System.currentTimeMillis() / 1000));
+        return chatMessage;
+    }
+
+    /**
+     * Creates a mock MenuOptionClicked event
+     */
+    public static MenuOptionClicked createMockMenuClick(String option, String target) {
+        MenuOptionClicked menuClick = mock(MenuOptionClicked.class);
+        when(menuClick.getMenuOption()).thenReturn(option);
+        when(menuClick.getMenuTarget()).thenReturn(target);
+        when(menuClick.getId()).thenReturn(0);
+        when(menuClick.getMenuAction()).thenReturn(net.runelite.api.MenuAction.WALK);
+        when(menuClick.getParam0()).thenReturn(0);
+        when(menuClick.getParam1()).thenReturn(0);
+        return menuClick;
+    }
+
+    /**
+     * Test data generators
+     */
+    public static class DataGenerators {
+
+        /**
+         * Generates test game tick data
+         */
+        public static GameTickData generateGameTickData(UUID sessionId, int tickNumber) {
+            GameTickData data = new GameTickData();
+            data.sessionId = sessionId;
+            data.timestamp = System.currentTimeMillis();
+            data.tickNumber = tickNumber;
+            data.gameState = 30; // LOGGED_IN
+            data.playerX = 3200 + random.nextInt(100);
+            data.playerY = 3200 + random.nextInt(100);
+            data.playerPlane = 0;
+            data.playerAnimation = random.nextBoolean() ? -1 : 808; // Walking or idle
+            data.playerHealth = 99;
+            data.playerPrayer = 99;
+            data.playerRunEnergy = 100;
+            data.cameraYaw = 1800 + random.nextInt(720);
+            data.cameraPitch = 128 + random.nextInt(256);
+            return data;
+        }
+
+        /**
+         * Generates test collection log data
+         */
+        public static CollectionLogData generateCollectionLogData(UUID sessionId, String category, String entryName) {
+            CollectionLogData data = new CollectionLogData();
+            data.sessionId = sessionId;
+            data.timestamp = System.currentTimeMillis();
+            data.category = category;
+            data.entryName = entryName;
+            data.completedItems = random.nextInt(10) + 1;
+            data.totalItems = 10;
+            data.isCompleted = data.completedItems >= data.totalItems;
+            data.bossKillCount = random.nextInt(500);
+            data.rareDrops = random.nextInt(5);
+            data.collectionValue = random.nextInt(1000000);
+            return data;
+        }
+
+        /**
+         * Generates test security analysis data
+         */
+        public static SecurityAnalysisData generateSecurityData(UUID sessionId, boolean suspicious) {
+            SecurityAnalysisData data = new SecurityAnalysisData();
+            data.sessionId = sessionId;
+            data.timestamp = System.currentTimeMillis();
+            data.analysisType = "comprehensive";
+            
+            if (suspicious) {
+                // Generate suspicious patterns
+                data.riskScore = 0.7 + (random.nextDouble() * 0.3); // High risk
+                data.movementConsistency = 0.95 + (random.nextDouble() * 0.05); // Very consistent
+                data.clickTimingVariance = random.nextDouble() * 0.05; // Low variance
+                data.cameraSmoothness = 0.99; // Too smooth
+                data.behavioralScore = 0.3 + (random.nextDouble() * 0.4); // Low human score
+                data.riskAssessment = "HIGH";
+            } else {
+                // Generate normal patterns
+                data.riskScore = random.nextDouble() * 0.3; // Low risk
+                data.movementConsistency = 0.6 + (random.nextDouble() * 0.3); // Variable
+                data.clickTimingVariance = 0.1 + (random.nextDouble() * 0.2); // Normal variance
+                data.cameraSmoothness = 0.7 + (random.nextDouble() * 0.2); // Human-like
+                data.behavioralScore = 0.7 + (random.nextDouble() * 0.3); // High human score
+                data.riskAssessment = "LOW";
+            }
+            
+            return data;
+        }
+
+        /**
+         * Generates test performance metrics data
+         */
+        public static PerformanceMetricsData generatePerformanceData(UUID sessionId, String componentName) {
+            PerformanceMetricsData data = new PerformanceMetricsData();
+            data.sessionId = sessionId;
+            data.timestamp = System.currentTimeMillis();
+            data.componentName = componentName;
+            data.executionTimeNs = 100_000L + random.nextLong() % 400_000L; // 0.1-0.5ms
+            data.memoryUsageMb = 100 + random.nextInt(100); // 100-200MB
+            data.cpuUsagePercent = 5.0 + (random.nextDouble() * 20.0); // 5-25%
+            data.optimizationApplied = random.nextBoolean();
+            data.performanceScore = 0.8 + (random.nextDouble() * 0.2); // Good performance
+            data.thresholdExceeded = data.executionTimeNs > 1_000_000L; // >1ms
+            return data;
+        }
+
+        /**
+         * Generates a series of movement points for testing
+         */
+        public static WorldPoint[] generateMovementPath(WorldPoint start, int steps, boolean linear) {
+            WorldPoint[] path = new WorldPoint[steps + 1];
+            path[0] = start;
+            
+            for (int i = 1; i <= steps; i++) {
+                if (linear) {
+                    // Linear movement (potentially suspicious)
+                    path[i] = new WorldPoint(start.getX() + i, start.getY(), start.getPlane());
+                } else {
+                    // Random walk (more natural)
+                    int deltaX = random.nextInt(3) - 1; // -1, 0, or 1
+                    int deltaY = random.nextInt(3) - 1;
+                    path[i] = new WorldPoint(
+                        path[i-1].getX() + deltaX,
+                        path[i-1].getY() + deltaY,
+                        path[i-1].getPlane()
+                    );
+                }
+            }
+            
+            return path;
+        }
+
+        /**
+         * Generates click timing patterns for testing
+         */
+        public static long[] generateClickTimings(int count, boolean consistent) {
+            long[] timings = new long[count];
+            long baseTime = System.currentTimeMillis();
+            
+            for (int i = 0; i < count; i++) {
+                if (consistent) {
+                    // Consistent timing (potentially suspicious)
+                    timings[i] = baseTime + (i * 600L); // Exactly 600ms apart
+                } else {
+                    // Human-like variation
+                    int variation = random.nextInt(200) - 100; // ±100ms variation
+                    timings[i] = baseTime + (i * 600L) + variation;
+                }
+            }
+            
+            return timings;
+        }
+    }
+
+    /**
+     * Collection log test messages
+     */
+    public static class CollectionLogMessages {
+        public static final String[] UNLOCK_MESSAGES = {
+            "New item added to your collection log: Abyssal whip",
+            "New item added to your collection log: Dragon chainbody",
+            "New item added to your collection log: Bandos chestplate",
+            "New item added to your collection log: Armadyl crossbow",
+            "New item added to your collection log: Primordial boots"
+        };
+
+        public static final String[] COMPLETION_MESSAGES = {
+            "Congratulations, you've completed the Giant Mole collection log!",
+            "Congratulations, you've completed the Barrows collection log!",
+            "Congratulations, you've completed the Godwars Dungeon collection log!",
+            "Congratulations, you've completed the Chambers of Xeric collection log!",
+            "Congratulations, you've completed the Theatre of Blood collection log!"
+        };
+
+        public static final String[] MILESTONE_MESSAGES = {
+            "Collection log count: 50",
+            "Collection log count: 100",
+            "Collection log count: 150",
+            "Collection log count: 200",
+            "Collection log count: 250"
+        };
+
+        public static final String[] BOSS_KILL_MESSAGES = {
+            "Your Giant Mole kill count is: 47",
+            "Your Abyssal Sire kill count is: 123",
+            "Your Cerberus kill count is: 89",
+            "Your Vorkath kill count is: 156",
+            "Your Zulrah kill count is: 234"
+        };
+    }
+
+    /**
+     * Performance testing utilities
+     */
+    public static class PerformanceUtils {
+
+        /**
+         * Measures execution time of a runnable
+         */
+        public static long measureExecutionTime(Runnable task) {
+            long startTime = System.nanoTime();
+            task.run();
+            return System.nanoTime() - startTime;
+        }
+
+        /**
+         * Measures execution time and verifies it's under threshold
+         */
+        public static void assertExecutionTime(Runnable task, long thresholdNs, String description) {
+            long executionTime = measureExecutionTime(task);
+            if (executionTime > thresholdNs) {
+                throw new AssertionError(String.format(
+                    "%s took %d ns, expected under %d ns", 
+                    description, executionTime, thresholdNs
+                ));
+            }
+        }
+
+        /**
+         * Runs a task multiple times and returns average execution time
+         */
+        public static long benchmarkTask(Runnable task, int iterations) {
+            long totalTime = 0;
+            
+            // Warm up
+            for (int i = 0; i < 10; i++) {
+                task.run();
+            }
+            
+            // Measure
+            for (int i = 0; i < iterations; i++) {
+                totalTime += measureExecutionTime(task);
+            }
+            
+            return totalTime / iterations;
+        }
+    }
+
+    /**
+     * Memory testing utilities
+     */
+    public static class MemoryUtils {
+
+        /**
+         * Forces garbage collection and returns current memory usage
+         */
+        public static long getCurrentMemoryUsage() {
+            System.gc();
+            System.gc(); // Call twice to be more thorough
+            
+            Runtime runtime = Runtime.getRuntime();
+            return runtime.totalMemory() - runtime.freeMemory();
+        }
+
+        /**
+         * Measures memory usage of a task
+         */
+        public static long measureMemoryUsage(Runnable task) {
+            long beforeMemory = getCurrentMemoryUsage();
+            task.run();
+            long afterMemory = getCurrentMemoryUsage();
+            return afterMemory - beforeMemory;
+        }
+
+        /**
+         * Verifies that memory usage doesn't exceed threshold
+         */
+        public static void assertMemoryUsage(Runnable task, long maxMemoryBytes, String description) {
+            long memoryUsed = measureMemoryUsage(task);
+            if (memoryUsed > maxMemoryBytes) {
+                throw new AssertionError(String.format(
+                    "%s used %d bytes, expected under %d bytes",
+                    description, memoryUsed, maxMemoryBytes
+                ));
+            }
+        }
+    }
+
+    /**
+     * Async testing utilities
+     */
+    public static class AsyncUtils {
+
+        /**
+         * Waits for a CompletableFuture with timeout
+         */
+        public static <T> T waitFor(CompletableFuture<T> future, long timeoutMs) throws Exception {
+            return future.get(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+        }
+
+        /**
+         * Runs multiple tasks concurrently and waits for completion
+         */
+        public static void runConcurrently(Runnable... tasks) throws InterruptedException {
+            Thread[] threads = new Thread[tasks.length];
+            
+            for (int i = 0; i < tasks.length; i++) {
+                threads[i] = new Thread(tasks[i]);
+                threads[i].start();
+            }
+            
+            for (Thread thread : threads) {
+                thread.join(10000); // 10 second timeout
+            }
+        }
+
+        /**
+         * Verifies that all futures complete successfully
+         */
+        public static void assertAllComplete(CompletableFuture<?>... futures) throws Exception {
+            CompletableFuture<Void> allOf = CompletableFuture.allOf(futures);
+            waitFor(allOf, 10000); // 10 second timeout
+        }
+    }
+
+    // Data classes used in testing
+    public static class GameTickData {
+        public UUID sessionId;
+        public long timestamp;
+        public int tickNumber;
+        public int gameState;
+        public int playerX, playerY, playerPlane;
+        public int playerAnimation;
+        public int playerHealth, playerPrayer, playerRunEnergy;
+        public int cameraYaw, cameraPitch;
+    }
+
+    public static class CollectionLogData {
+        public UUID sessionId;
+        public long timestamp;
+        public String category;
+        public String entryName;
+        public int completedItems, totalItems;
+        public boolean isCompleted;
+        public int bossKillCount, rareDrops, collectionValue;
+    }
+
+    public static class SecurityAnalysisData {
+        public UUID sessionId;
+        public long timestamp;
+        public String analysisType;
+        public double riskScore;
+        public double movementConsistency;
+        public double clickTimingVariance;
+        public double cameraSmoothness;
+        public double behavioralScore;
+        public String riskAssessment;
+    }
+
+    public static class PerformanceMetricsData {
+        public UUID sessionId;
+        public long timestamp;
+        public String componentName;
+        public long executionTimeNs;
+        public int memoryUsageMb;
+        public double cpuUsagePercent;
+        public boolean optimizationApplied;
+        public double performanceScore;
+        public boolean thresholdExceeded;
+    }
+}

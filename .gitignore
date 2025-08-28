@@ -1,11 +1,3 @@
-# Build output
-target/
-build/
-out/
-*.class
-*.jar
-*.war
-
 # IDE files
 .idea/
 *.iml
@@ -34,16 +26,9 @@ desktop.ini
 *.swp
 *~
 
-# RuneLite specific
-.runelite/
-jagexcache/
-runelite/
-
 # Include our RuneLiteAI plugin (override default plugin ignoring)
 !RunelitePluginClone/runelite-client/src/main/java/net/runelite/client/plugins/runeliteai/
 
-# Maven
-dependency-reduced-pom.xml
 
 # Credentials (keep these secure)
 *.key

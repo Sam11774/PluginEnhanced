@@ -1,0 +1,1292 @@
+/*
+ * Copyright (c) 2024, RuneLiteAI Team  
+ * All rights reserved.
+ */
+package net.runelite.client.plugins.runeliteai;
+
+import lombok.Data;
+import lombok.Builder;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import net.runelite.api.Item;
+import net.runelite.api.events.ChatMessage;
+import net.runelite.api.events.HitsplatApplied;
+import net.runelite.api.events.InteractingChanged;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Collection of data structure classes for RuneLiteAI Plugin
+ * 
+ * This file contains all the supporting data structures used throughout
+ * the plugin for organizing and storing collected data.
+ * 
+ * @author RuneLiteAI Team
+ * @version 3.1.0
+ */
+public class DataStructures
+{
+    // ===== PLAYER DATA STRUCTURES =====
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PlayerData
+    {
+        private String playerName;
+        private Integer combatLevel;
+        private Integer worldX;
+        private Integer worldY;
+        private Integer plane;
+        private Integer animation;
+        private Integer poseAnimation;
+        private Integer healthRatio;
+        private Integer healthScale;
+        private String overhead;
+        private String skullIcon;
+        private Integer team;
+        private Boolean isFriend;
+        private Boolean isClanMember;
+        private Boolean isFriendsChatMember;
+        
+        public int getDataPointCount() { return 15; }
+        public long getEstimatedSize() { return 64 + (16 * 10) + (8 * 3) + (playerName != null ? playerName.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PlayerVitals
+    {
+        private Integer currentHitpoints;
+        private Integer maxHitpoints;
+        private Integer currentPrayer;
+        private Integer maxPrayer;
+        private Integer energy;
+        private Integer weight;
+        private Integer specialAttackPercent;
+        private Boolean poisoned;
+        private Boolean diseased;
+        private Boolean venomed;
+        
+        public int getDataPointCount() { return 10; }
+        public long getEstimatedSize() { return 64 + (16 * 7) + (8 * 3); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PlayerLocation
+    {
+        private Integer worldX;
+        private Integer worldY;
+        private Integer plane;
+        private Integer regionX;
+        private Integer regionY;
+        private Integer regionId;
+        private String locationName;
+        private String areaType;
+        private Boolean inWilderness;
+        private Integer wildernessLevel;
+        private Boolean inPvp;
+        private Boolean inMultiCombat;
+        
+        public int getDataPointCount() { return 12; }
+        public long getEstimatedSize() { return 64 + (16 * 8) + (8 * 3) + 
+            (locationName != null ? locationName.length() * 2 : 0) +
+            (areaType != null ? areaType.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PlayerStats
+    {
+        private Map<String, Integer> currentLevels;
+        private Map<String, Integer> realLevels;
+        private Map<String, Integer> experience;
+        private Integer totalLevel;
+        private Integer combatLevel;
+        private Long totalExperience;
+        
+        public int getDataPointCount() { 
+            int count = 3; // totalLevel, combatLevel, totalExperience
+            count += (currentLevels != null ? currentLevels.size() : 0);
+            count += (realLevels != null ? realLevels.size() : 0);
+            count += (experience != null ? experience.size() : 0);
+            return count;
+        }
+        public long getEstimatedSize() { return 64 + (16 * 3) + 
+            (currentLevels != null ? currentLevels.size() * 32 : 0) +
+            (realLevels != null ? realLevels.size() * 32 : 0) +
+            (experience != null ? experience.size() * 32 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PlayerEquipment
+    {
+        private Item[] equipmentItems;
+        private Map<String, Integer> equipmentIds;
+        private Integer weaponTypeId;
+        private String weaponType;
+        private String attackStyle;
+        private Boolean autoRetaliate;
+        private Integer combatStyle;
+        
+        // Individual equipment slot IDs (for database storage)
+        private Integer helmetId;
+        private Integer capeId;
+        private Integer amuletId;
+        private Integer weaponId;
+        private Integer bodyId;
+        private Integer shieldId;
+        private Integer legsId;
+        private Integer glovesId;
+        private Integer bootsId;
+        private Integer ringId;
+        private Integer ammoId;
+        
+        // Individual equipment slot names (friendly name resolution)
+        private String helmetName;
+        private String capeName;
+        private String amuletName;
+        private String weaponName;
+        private String bodyName;
+        private String shieldName;
+        private String legsName;
+        private String glovesName;
+        private String bootsName;
+        private String ringName;
+        private String ammoName;
+        
+        public int getDataPointCount() { 
+            int count = 27; // weaponTypeId, weaponType, attackStyle, autoRetaliate, combatStyle + 11 IDs + 11 names
+            count += (equipmentItems != null ? equipmentItems.length : 0);
+            count += (equipmentIds != null ? equipmentIds.size() : 0);
+            return count;
+        }
+        public long getEstimatedSize() { return 64 + (16 * 27) + 
+            (equipmentItems != null ? equipmentItems.length * 16 : 0) +
+            (equipmentIds != null ? equipmentIds.size() * 32 : 0) +
+            (weaponType != null ? weaponType.length() * 2 : 0) +
+            (attackStyle != null ? attackStyle.length() * 2 : 0) +
+            (helmetName != null ? helmetName.length() * 2 : 0) +
+            (capeName != null ? capeName.length() * 2 : 0) +
+            (amuletName != null ? amuletName.length() * 2 : 0) +
+            (weaponName != null ? weaponName.length() * 2 : 0) +
+            (bodyName != null ? bodyName.length() * 2 : 0) +
+            (shieldName != null ? shieldName.length() * 2 : 0) +
+            (legsName != null ? legsName.length() * 2 : 0) +
+            (glovesName != null ? glovesName.length() * 2 : 0) +
+            (bootsName != null ? bootsName.length() * 2 : 0) +
+            (ringName != null ? ringName.length() * 2 : 0) +
+            (ammoName != null ? ammoName.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PlayerInventory
+    {
+        private Item[] inventoryItems;
+        private Integer usedSlots;
+        private Integer freeSlots;
+        private Long totalValue;
+        private Map<Integer, Integer> itemCounts;
+        private String lastItemUsed;
+        private Integer lastItemId;
+        
+        // Change tracking fields (match database schema)
+        private Integer itemsAdded;
+        private Integer itemsRemoved;
+        private Integer quantityGained;
+        private Integer quantityLost;
+        private Long valueGained;
+        private Long valueLost;
+        
+        public int getDataPointCount() {
+            int count = 11; // usedSlots, freeSlots, totalValue, lastItemUsed, lastItemId, itemsAdded, itemsRemoved, quantityGained, quantityLost, valueGained, valueLost
+            count += (inventoryItems != null ? inventoryItems.length : 0);
+            count += (itemCounts != null ? itemCounts.size() : 0);
+            return count;
+        }
+        public long getEstimatedSize() { return 64 + (16 * 11) + 
+            (inventoryItems != null ? inventoryItems.length * 16 : 0) +
+            (itemCounts != null ? itemCounts.size() * 32 : 0) +
+            (lastItemUsed != null ? lastItemUsed.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PlayerActivePrayers
+    {
+        private Map<String, Boolean> activePrayers;
+        private Integer activePrayerCount;
+        private Integer prayerDrainRate;
+        private String quickPrayerSet;
+        private Boolean quickPrayerActive;
+        
+        public int getDataPointCount() {
+            int count = 4; // activePrayerCount, prayerDrainRate, quickPrayerSet, quickPrayerActive
+            count += (activePrayers != null ? activePrayers.size() : 0);
+            return count;
+        }
+        public long getEstimatedSize() { return 64 + (16 * 4) + 
+            (activePrayers != null ? activePrayers.size() * 24 : 0) +
+            (quickPrayerSet != null ? quickPrayerSet.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PlayerActiveSpells
+    {
+        private String selectedSpell;
+        private String spellbook;
+        private String lastCastSpell;
+        private Boolean autocastEnabled;
+        private String autocastSpell;
+        
+        // Rune pouch item IDs (for database storage)
+        private Integer runePouch1;
+        private Integer runePouch2;
+        private Integer runePouch3;
+        
+        // Rune pouch item names (friendly name resolution)
+        private String runePouch1Name;
+        private String runePouch2Name;
+        private String runePouch3Name;
+        
+        public int getDataPointCount() { return 11; } // 8 original + 3 new names
+        public long getEstimatedSize() { return 64 + (16 * 7) + (8 * 1) +
+            (selectedSpell != null ? selectedSpell.length() * 2 : 0) +
+            (spellbook != null ? spellbook.length() * 2 : 0) +
+            (lastCastSpell != null ? lastCastSpell.length() * 2 : 0) +
+            (autocastSpell != null ? autocastSpell.length() * 2 : 0) +
+            (runePouch1Name != null ? runePouch1Name.length() * 2 : 0) +
+            (runePouch2Name != null ? runePouch2Name.length() * 2 : 0) +
+            (runePouch3Name != null ? runePouch3Name.length() * 2 : 0); }
+    }
+    
+    // ===== WORLD DATA STRUCTURES =====
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class WorldEnvironmentData
+    {
+        private Integer plane;
+        private Integer baseX;
+        private Integer baseY;
+        private Integer[] mapRegions;
+        private String currentRegion;
+        private Integer nearbyPlayerCount;
+        private Integer nearbyNPCCount;
+        private Integer gameObjectCount;
+        private Integer groundItemCount;
+        private String weatherCondition;
+        private Integer lightLevel;
+        private Long worldTick;
+        private String environmentType;
+        
+        public int getDataPointCount() { 
+            int count = 11; // primitive/string fields (added environmentType)
+            count += (mapRegions != null ? mapRegions.length : 0);
+            return count;
+        }
+        public long getEstimatedSize() { return 64 + (16 * 10) + 
+            (mapRegions != null ? mapRegions.length * 4 : 0) +
+            (currentRegion != null ? currentRegion.length() * 2 : 0) +
+            (weatherCondition != null ? weatherCondition.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class NearbyPlayersData
+    {
+        private List<PlayerData> players;
+        private Integer playerCount;
+        private Integer friendCount;
+        private Integer clanCount;
+        private Integer pkCount;
+        private Integer averageCombatLevel;
+        private String mostCommonActivity;
+        
+        public int getDataPointCount() {
+            int count = 6; // primitive fields
+            count += (players != null ? players.size() * 15 : 0); // 15 data points per player
+            return count;
+        }
+        public long getEstimatedSize() { return 64 + (16 * 6) + 
+            (players != null ? players.size() * 200 : 0) +
+            (mostCommonActivity != null ? mostCommonActivity.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class NearbyNPCsData
+    {
+        private List<NPCData> npcs;
+        private Integer npcCount;
+        private Integer aggressiveNPCCount;
+        private Integer combatNPCCount;
+        private String mostCommonNPCType;
+        private Integer averageNPCCombatLevel;
+        
+        public int getDataPointCount() {
+            int count = 5; // primitive/string fields
+            count += (npcs != null ? npcs.size() * 12 : 0); // 12 data points per NPC
+            return count;
+        }
+        public long getEstimatedSize() { return 64 + (16 * 5) + 
+            (npcs != null ? npcs.size() * 150 : 0) +
+            (mostCommonNPCType != null ? mostCommonNPCType.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class NPCData
+    {
+        private Integer npcId;
+        private String npcName;
+        private Integer worldX;
+        private Integer worldY;
+        private Integer plane;
+        private Integer animation;
+        private Integer healthRatio;
+        private Integer combatLevel;
+        private Boolean isInteracting;
+        private String targetName;
+        private Integer orientation;
+        private String npcType;
+        
+        public int getDataPointCount() { return 12; }
+        public long getEstimatedSize() { return 64 + (16 * 8) + (8 * 1) +
+            (npcName != null ? npcName.length() * 2 : 0) +
+            (targetName != null ? targetName.length() * 2 : 0) +
+            (npcType != null ? npcType.length() * 2 : 0); }
+    }
+    
+    // ===== INPUT DATA STRUCTURES =====
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MouseInputData
+    {
+        private Integer mouseX;
+        private Integer mouseY;
+        private Integer mouseIdleTime;
+        private Boolean leftButtonPressed;
+        private Boolean rightButtonPressed;
+        private Boolean middleButtonPressed;
+        private Integer lastClickX;
+        private Integer lastClickY;
+        private Long lastClickTime;
+        private String lastClickTarget;
+        private Integer clickCount;
+        private Double averageClickInterval;
+        
+        public int getDataPointCount() { return 12; }
+        public long getEstimatedSize() { return 64 + (16 * 8) + (8 * 3) +
+            (lastClickTarget != null ? lastClickTarget.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class KeyboardInputData
+    {
+        private Map<Integer, Boolean> pressedKeys;
+        private String lastKeyPressed;
+        private Long lastKeyTime;
+        private Integer keyPressCount;
+        private Integer activeKeysCount;
+        private Double averageKeyInterval;
+        private Boolean shiftPressed;
+        private Boolean ctrlPressed;
+        private Boolean altPressed;
+        
+        public int getDataPointCount() {
+            int count = 8; // primitive/string fields (added activeKeysCount)
+            count += (pressedKeys != null ? pressedKeys.size() : 0);
+            return count;
+        }
+        public long getEstimatedSize() { return 64 + (16 * 7) + (8 * 3) +
+            (pressedKeys != null ? pressedKeys.size() * 8 : 0) +
+            (lastKeyPressed != null ? lastKeyPressed.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class CameraData
+    {
+        private Integer cameraX;
+        private Integer cameraY;
+        private Integer cameraZ;
+        private Integer cameraPitch;
+        private Integer cameraYaw;
+        private Double minimapZoom;
+        private Double cameraRotationRate;
+        private String movementDirection;
+        private Boolean significantChange;
+        
+        public int getDataPointCount() { return 9; }
+        public long getEstimatedSize() { return 64 + (16 * 7) + (8 * 1) +
+            (movementDirection != null ? movementDirection.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MenuInteractionData
+    {
+        private Boolean menuOpen;
+        private Integer menuEntryCount;
+        private String[] menuOptions;
+        private String lastMenuAction;
+        private String lastMenuTarget;
+        private Long lastMenuTime;
+        private Integer menuInteractionCount;
+        
+        public int getDataPointCount() {
+            int count = 6; // primitive/string fields
+            count += (menuOptions != null ? menuOptions.length : 0);
+            return count;
+        }
+        public long getEstimatedSize() { return 64 + (16 * 6) + (8 * 1) +
+            (menuOptions != null ? menuOptions.length * 32 : 0) +
+            (lastMenuAction != null ? lastMenuAction.length() * 2 : 0) +
+            (lastMenuTarget != null ? lastMenuTarget.length() * 2 : 0); }
+    }
+    
+    // ===== ADDITIONAL SUPPORTING CLASSES =====
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class GameObjectsData
+    {
+        private List<GameObjectData> objects;
+        private Integer objectCount;
+        private String mostCommonObjectType;
+        private Integer scanRadius;
+        private Integer uniqueObjectTypes;
+        private Map<String, Integer> objectTypeCounts;
+        
+        // New fields for object interaction tracking
+        private Integer interactableObjectsCount;
+        private Integer closestObjectDistance;
+        private Integer closestObjectId;
+        private String closestObjectName;
+        
+        public int getDataPointCount() {
+            int count = 8; // objectCount, mostCommonObjectType, scanRadius, uniqueObjectTypes, interactableObjectsCount, closestObjectDistance, closestObjectId, closestObjectName
+            count += (objects != null ? objects.size() * 8 : 0);
+            count += (objectTypeCounts != null ? objectTypeCounts.size() : 0);
+            return count;
+        }
+        public long getEstimatedSize() { return 64 + (16 * 7) + (8 * 1) + 
+            (objects != null ? objects.size() * 100 : 0) +
+            (objectTypeCounts != null ? objectTypeCounts.size() * 32 : 0) +
+            (mostCommonObjectType != null ? mostCommonObjectType.length() * 2 : 0) +
+            (closestObjectName != null ? closestObjectName.length() * 2 : 0); }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class GameObjectData
+    {
+        private Integer objectId;
+        private String objectName;
+        private Integer worldX;
+        private Integer worldY;
+        private Integer plane;
+        private String objectType;
+        private Boolean interactable;
+        private Integer orientation;
+        
+        public int getDataPointCount() { return 8; }
+        public long getEstimatedSize() { return 64 + (16 * 6) + (8 * 1) +
+            (objectName != null ? objectName.length() * 2 : 0) +
+            (objectType != null ? objectType.length() * 2 : 0); }
+    }
+    
+    // ===== GROUND ITEMS DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class GroundItemsData {
+        private Integer totalItems;
+        private Integer totalQuantity;
+        private List<GroundItemData> items;
+        private Long totalValue;
+        private String mostValuableItem;
+        private Integer uniqueItemTypes;
+        private Integer scanRadius;
+        private List<GroundItemData> groundItems;
+        
+        public int getDataPointCount() { 
+            int count = 6; // totalItems, totalQuantity, totalValue, mostValuableItem, uniqueItemTypes, scanRadius
+            count += (items != null ? items.size() * 6 : 0); // 6 data points per ground item
+            count += (groundItems != null ? groundItems.size() * 6 : 0); // additional ground items
+            return count;
+        }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 5) + 
+                (items != null ? items.size() * 100 : 0) +
+                (groundItems != null ? groundItems.size() * 100 : 0) +
+                (mostValuableItem != null ? mostValuableItem.length() * 2 : 0);
+        }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class GroundItemData {
+        private Integer itemId;
+        private String itemName;
+        private Integer quantity;
+        private Integer worldX;
+        private Integer worldY;
+        private Integer plane;
+        
+        public int getDataPointCount() { return 6; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 5) + 
+                (itemName != null ? itemName.length() * 2 : 0);
+        }
+    }
+    
+    // ===== PROJECTILES DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ProjectilesData {
+        private List<ProjectileData> projectiles;
+        private Integer activeProjectileCount;
+        private String mostCommonProjectileType;
+        private Integer activeProjectiles;
+        private Integer uniqueProjectileTypes;
+        
+        public int getDataPointCount() { 
+            int count = 2; // activeProjectileCount, mostCommonProjectileType
+            count += (projectiles != null ? projectiles.size() * 8 : 0); // 8 data points per projectile
+            return count;
+        }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 2) + 
+                (projectiles != null ? projectiles.size() * 120 : 0) +
+                (mostCommonProjectileType != null ? mostCommonProjectileType.length() * 2 : 0);
+        }
+    }
+    
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ProjectileData {
+        private Integer projectileId;
+        private String projectileType;
+        private Integer startX;
+        private Integer startY;
+        private Integer endX;
+        private Integer endY;
+        private Integer remainingCycles;
+        private Integer slope;
+        
+        public int getDataPointCount() { return 8; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 7) + 
+                (projectileType != null ? projectileType.length() * 2 : 0);
+        }
+    }
+    
+    // ===== COMBAT DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class CombatData {
+        private Boolean inCombat;
+        private Boolean isAttacking;
+        private String targetName;
+        private String targetType;
+        private Integer targetCombatLevel;
+        private Integer currentAnimation;
+        private String weaponType;
+        private String attackStyle;
+        private Integer specialAttackPercent;
+        private String combatState;
+        private Long lastAttackTime;
+        private Integer damageDealt;
+        private Long lastCombatTick;
+        
+        public int getDataPointCount() { return 13; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 8) + (8 * 1) +
+                (targetName != null ? targetName.length() * 2 : 0) +
+                (targetType != null ? targetType.length() * 2 : 0) +
+                (weaponType != null ? weaponType.length() * 2 : 0) +
+                (attackStyle != null ? attackStyle.length() * 2 : 0) +
+                (combatState != null ? combatState.length() * 2 : 0);
+        }
+    }
+    
+    // ===== HITSPLAT DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class HitsplatData {
+        private Integer totalRecentDamage;
+        private Integer maxRecentHit;
+        private Integer hitCount;
+        private String lastHitType;
+        private Long lastHitTime;
+        private Integer averageHit;
+        private List<Integer> recentHits;
+        private List<HitsplatApplied> recentHitsplats;
+        private Double averageDamage;
+        
+        public int getDataPointCount() {
+            int count = 7; // totalRecentDamage, maxRecentHit, hitCount, lastHitType, lastHitTime, averageHit, averageDamage
+            count += (recentHits != null ? recentHits.size() : 0);
+            count += (recentHitsplats != null ? recentHitsplats.size() * 3 : 0); // approximate 3 data points per hitsplat
+            return count;
+        }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 6) +
+                (lastHitType != null ? lastHitType.length() * 2 : 0) +
+                (recentHits != null ? recentHits.size() * 4 : 0) +
+                (recentHitsplats != null ? recentHitsplats.size() * 64 : 0);
+        }
+    }
+    
+    // ===== ANIMATION DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class AnimationData {
+        private Integer currentAnimation;
+        private String animationType;
+        private Integer animationDuration;
+        private Long animationStartTime;
+        private String lastAnimation;
+        private Integer animationChangeCount;
+        private Integer poseAnimation;
+        private List<Integer> recentAnimations;
+        
+        public int getDataPointCount() { return 8; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 5) + (8 * 1) +
+                (animationType != null ? animationType.length() * 2 : 0) +
+                (lastAnimation != null ? lastAnimation.length() * 2 : 0);
+        }
+    }
+    
+    // ===== INTERACTION DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class InteractionData {
+        private String lastInteractionType;
+        private String lastInteractionTarget;
+        private Long lastInteractionTime;
+        private Integer interactionCount;
+        private String mostCommonInteraction;
+        private Double averageInteractionInterval;
+        private String currentTarget;
+        private String interactionType;
+        private List<InteractingChanged> recentInteractions;
+        
+        public int getDataPointCount() { return 8; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 4) + (8 * 1) +
+                (lastInteractionType != null ? lastInteractionType.length() * 2 : 0) +
+                (lastInteractionTarget != null ? lastInteractionTarget.length() * 2 : 0) +
+                (mostCommonInteraction != null ? mostCommonInteraction.length() * 2 : 0) +
+                (currentTarget != null ? currentTarget.length() * 2 : 0);
+        }
+    }
+    
+    // ===== CHAT DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ChatData {
+        private Integer totalMessageCount;
+        private Integer publicChatCount;
+        private Integer privateChatCount;
+        private Integer clanChatCount;
+        private Integer systemMessageCount;
+        private Double averageMessageLength;
+        private String mostActiveMessageType;
+        private String lastMessage;
+        private Long lastMessageTime;
+        private Integer spamScore;
+        private List<ChatMessage> recentMessages;
+        private List<String> messageHistory;
+        private Map<String, Integer> messageTypeCounts;
+        
+        public int getDataPointCount() { 
+            int count = 10; // basic fields
+            count += (recentMessages != null ? recentMessages.size() * 3 : 0); // approximate 3 data points per message
+            count += (messageHistory != null ? messageHistory.size() : 0); // message history strings
+            return count;
+        }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 7) + (8 * 1) +
+                (mostActiveMessageType != null ? mostActiveMessageType.length() * 2 : 0) +
+                (lastMessage != null ? lastMessage.length() * 2 : 0) +
+                (recentMessages != null ? recentMessages.size() * 128 : 0);
+        }
+    }
+    
+    // ===== FRIENDS DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class FriendsData {
+        private Integer totalFriends;
+        private Integer onlineFriends;
+        private Integer offlineFriends;
+        private List<String> friendsList;
+        private String lastFriendInteraction;
+        private Long lastFriendActivity;
+        private Long lastUpdateTime;
+        private Integer friendsListCapacity;
+        
+        public int getDataPointCount() {
+            int count = 6; // totalFriends, onlineFriends, offlineFriends, lastFriendInteraction, lastFriendActivity, lastUpdateTime
+            count += (friendsList != null ? friendsList.size() : 0);
+            return count;
+        }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 5) + (8 * 1) +
+                (friendsList != null ? friendsList.size() * 32 : 0) +
+                (lastFriendInteraction != null ? lastFriendInteraction.length() * 2 : 0);
+        }
+    }
+    
+    // ===== CLAN DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ClanData {
+        private String clanName;
+        private Integer clanMemberCount;
+        private Integer onlineClanMembers;
+        private String clanRank;
+        private Boolean inClanChannel;
+        private String lastClanMessage;
+        private Long lastClanActivity;
+        private Boolean inClan;
+        private Integer memberCount;
+        
+        public int getDataPointCount() { return 9; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 5) + (8 * 1) +
+                (clanName != null ? clanName.length() * 2 : 0) +
+                (clanRank != null ? clanRank.length() * 2 : 0) +
+                (lastClanMessage != null ? lastClanMessage.length() * 2 : 0);
+        }
+    }
+    
+    // ===== TRADE DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TradeData {
+        private Boolean inTrade;
+        private String tradePartner;
+        private Integer itemsOffered;
+        private Integer itemsRequested;
+        private Long totalValueOffered;
+        private Long totalValueRequested;
+        private String tradeState;
+        private Long tradeStartTime;
+        private String tradeStage;
+        private Long totalOffered;
+        private List<TradeItem> playerOfferedItems;
+        private List<TradeItem> partnerOfferedItems;
+        private Long tradeValue;
+        
+        public int getDataPointCount() { return 10; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 7) + (8 * 1) +
+                (tradePartner != null ? tradePartner.length() * 2 : 0) +
+                (tradeState != null ? tradeState.length() * 2 : 0) +
+                (tradeStage != null ? tradeStage.length() * 2 : 0);
+        }
+    }
+    
+    // ===== INTERFACE DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class InterfaceData {
+        private Integer totalOpenInterfaces;
+        private String primaryInterface;
+        private Boolean chatboxOpen;
+        private Boolean inventoryOpen;
+        private Boolean skillsInterfaceOpen;
+        private Boolean questInterfaceOpen;
+        private Boolean settingsInterfaceOpen;
+        private List<String> openInterfaces;
+        private String lastInterfaceOpened;
+        private Long lastInterfaceTime;
+        private List<Item> inventoryItems;
+        private List<Item> equipmentItems;
+        private List<Integer> visibleWidgets;
+        
+        public int getDataPointCount() {
+            int count = 8; // totalOpenInterfaces, primaryInterface, boolean fields, lastInterfaceOpened, lastInterfaceTime
+            count += (openInterfaces != null ? openInterfaces.size() : 0);
+            return count;
+        }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 7) + (8 * 1) +
+                (primaryInterface != null ? primaryInterface.length() * 2 : 0) +
+                (openInterfaces != null ? openInterfaces.size() * 32 : 0) +
+                (lastInterfaceOpened != null ? lastInterfaceOpened.length() * 2 : 0);
+        }
+    }
+    
+    // ===== DIALOGUE DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class DialogueData {
+        private Boolean dialogueOpen;
+        private String dialogueType;
+        private String speakerName;
+        private String dialogueText;
+        private Integer numberOfDialogueOptions;
+        private String lastDialogueAction;
+        private Long dialogueStartTime;
+        private Boolean inDialogue;
+        private List<String> dialogueOptions;
+        private String npcName;
+        
+        public int getDataPointCount() { return 8; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 5) + (8 * 1) +
+                (dialogueType != null ? dialogueType.length() * 2 : 0) +
+                (speakerName != null ? speakerName.length() * 2 : 0) +
+                (dialogueText != null ? dialogueText.length() * 2 : 0) +
+                (lastDialogueAction != null ? lastDialogueAction.length() * 2 : 0);
+        }
+    }
+    
+    // ===== SHOP DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ShopData {
+        private Boolean shopOpen;
+        private String shopName;
+        private Integer availableItems;
+        private Integer shopType;
+        private Long totalShopValue;
+        private List<Item> shopItems;
+        private String lastItemPurchased;
+        private String lastItemSold;
+        private Long lastShopActivity;
+        private Boolean inShop;
+        
+        public int getDataPointCount() { return 9; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 6) + (8 * 1) +
+                (shopName != null ? shopName.length() * 2 : 0) +
+                (lastItemPurchased != null ? lastItemPurchased.length() * 2 : 0) +
+                (lastItemSold != null ? lastItemSold.length() * 2 : 0);
+        }
+    }
+    
+    // ===== BANK DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class BankData {
+        private Boolean bankOpen;
+        private Integer totalUniqueItems;
+        private Integer usedBankSlots;
+        private Integer maxBankSlots;
+        private Long totalBankValue;
+        private Long lastModified;
+        private String lastBankAction;
+        private String mostValuableBankItem;
+        private Long lastBankActivity;
+        private List<Item> bankItems;
+        private Integer recentDeposits;
+        private Integer recentWithdrawals;
+        
+        public int getDataPointCount() { 
+            int count = 10; // basic fields (added recentDeposits, recentWithdrawals)
+            count += (bankItems != null ? bankItems.size() * 2 : 0); // 2 data points per item (id, quantity)
+            return count;
+        }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 6) + (8 * 1) +
+                (lastBankAction != null ? lastBankAction.length() * 2 : 0) +
+                (mostValuableBankItem != null ? mostValuableBankItem.length() * 2 : 0) +
+                (bankItems != null ? bankItems.size() * 16 : 0);
+        }
+    }
+    
+    // ===== SYSTEM METRICS =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class SystemMetrics {
+        private Integer usedMemoryMB;
+        private Integer maxMemoryMB;
+        private Double memoryUsagePercent;
+        private Double cpuUsagePercent;
+        private Integer clientFPS;
+        private Boolean clientFocused;
+        private Boolean clientResized;
+        private Integer gameState;
+        private Integer freeMemoryMB;
+        private Long gcCount;
+        private Long gcTime;
+        private Long uptime;
+        private Integer threadCount;
+        private Double averageTickTime;
+        private Integer totalMemoryMB;
+        private Integer heapUsedMB;
+        
+        public int getDataPointCount() { return 14; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 10) + (8 * 4);
+        }
+    }
+    
+    // ===== CLICK CONTEXT DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ClickContextData
+    {
+        // Core Click Information
+        private String clickType;           // "LEFT", "RIGHT", "MENU"
+        private String menuAction;          // From MenuAction enum
+        private String menuOption;          // "Attack", "Use", "Examine", etc.
+        private String menuTarget;          // Target name from RuneLite
+        
+        // Target Classification  
+        private String targetType;          // "GAME_OBJECT", "NPC", "GROUND_ITEM", "INVENTORY_ITEM", "MENU", "PLAYER"
+        private Integer targetId;           // Item/NPC/Object ID
+        private String targetName;          // Resolved name from ItemManager/APIs
+        
+        // Coordinates & Context
+        private Integer screenX;            // Click screen coordinates
+        private Integer screenY;            // Click screen coordinates  
+        private Integer worldX;             // World coordinates if applicable
+        private Integer worldY;             // World coordinates if applicable
+        private Integer plane;              // Game plane level
+        
+        // Additional Context
+        private Boolean isPlayerTarget;     // If clicking another player
+        private Boolean isEnemyTarget;      // If clicking hostile NPC
+        private String widgetInfo;          // Interface/menu context
+        private Long clickTimestamp;        // Precise timing
+        private Integer param0;             // MenuEntry param0
+        private Integer param1;             // MenuEntry param1
+        
+        // Item-specific context
+        private Integer itemId;             // Item ID if item click
+        private String itemName;            // Item name if item click
+        private Integer itemOp;             // Item operation (1-5) if item click
+        private Boolean isItemOp;           // Whether this is an item operation
+        
+        public int getDataPointCount() { return 22; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 11) + (8 * 5) +
+                (menuAction != null ? menuAction.length() * 2 : 0) +
+                (menuOption != null ? menuOption.length() * 2 : 0) +
+                (menuTarget != null ? menuTarget.length() * 2 : 0) +
+                (targetType != null ? targetType.length() * 2 : 0) +
+                (targetName != null ? targetName.length() * 2 : 0) +
+                (widgetInfo != null ? widgetInfo.length() * 2 : 0) +
+                (itemName != null ? itemName.length() * 2 : 0);
+        }
+    }
+    
+    // ===== ERROR DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ErrorData {
+        private String errorType;
+        private String errorMessage;
+        private String errorSource;
+        private Long errorTime;
+        private Integer errorCount;
+        private List<String> errorMessages;
+        private String errorSeverity;
+        private Boolean recovered;
+        private Integer totalErrors;
+        private Map<String, Integer> errorCounts;
+        private Double errorRate;
+        private String mostCommonError;
+        
+        public int getDataPointCount() { return 10; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 7) + (8 * 1) +
+                (errorType != null ? errorType.length() * 2 : 0) +
+                (errorMessage != null ? errorMessage.length() * 2 : 0) +
+                (errorSource != null ? errorSource.length() * 2 : 0) +
+                (errorSeverity != null ? errorSeverity.length() * 2 : 0) +
+                (mostCommonError != null ? mostCommonError.length() * 2 : 0);
+        }
+    }
+    
+    // ===== TIMING BREAKDOWN =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TimingBreakdown {
+        private Long totalProcessingTime;
+        private Long playerDataTime;
+        private Long worldDataTime;
+        private Long combatDataTime;
+        private Long inputDataTime;
+        private Map<String, Double> timingPercentages;
+        private Long databaseWriteTime;
+        private Long qualityValidationTime;
+        private Long behavioralAnalysisTime;
+        private Double averageTickTime;
+        private Integer slowTickCount;
+        private Double performanceScore;
+        private Map<String, Long> componentTimings;
+        private Long totalProcessingTimeNanos;
+        
+        public int getDataPointCount() { 
+            int count = 11; // basic fields
+            count += (componentTimings != null ? componentTimings.size() : 0);
+            return count;
+        }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 9) + (8 * 2) +
+                (componentTimings != null ? componentTimings.size() * 32 : 0);
+        }
+    }
+    
+    // ===== TRADE ITEM DATA =====
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TradeItem {
+        private Integer itemId;
+        private String itemName;
+        private Integer quantity;
+        private Long value;
+        
+        public int getDataPointCount() { return 4; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 3) + 
+                (itemName != null ? itemName.length() * 2 : 0);
+        }
+    }
+    
+    /**
+     * Enhanced keyboard tracking - Individual key press details
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class KeyPressData
+    {
+        private Integer keyCode;              // Java KeyEvent key code
+        private String keyName;               // Friendly name (F1, SPACE, W, etc.)
+        private String keyChar;               // Actual character if printable
+        
+        // Timing details
+        private Long pressTimestamp;          // Precise press time in milliseconds
+        private Long releaseTimestamp;        // Precise release time (NULL if still held)
+        private Integer durationMs;           // How long key was held
+        
+        // Context flags
+        private Boolean isFunctionKey;        // F1-F12 keys
+        private Boolean isModifierKey;        // Ctrl, Alt, Shift
+        private Boolean isMovementKey;        // WASD, arrow keys
+        private Boolean isActionKey;          // Space, Enter, etc.
+        
+        // Modifier states at press time
+        private Boolean ctrlHeld;
+        private Boolean altHeld;
+        private Boolean shiftHeld;
+        
+        public int getDataPointCount() { return 13; }
+        public long getEstimatedSize() { 
+            return 64 + (13 * 8) + 
+                (keyName != null ? keyName.length() * 2 : 0) +
+                (keyChar != null ? keyChar.length() * 2 : 0);
+        }
+    }
+    
+    /**
+     * Enhanced mouse button tracking - All mouse buttons with timing
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MouseButtonData
+    {
+        private String buttonType;            // LEFT, RIGHT, MIDDLE
+        private Integer buttonCode;           // Mouse button code (1=left, 2=middle, 3=right)
+        
+        // Timing details
+        private Long pressTimestamp;          // Precise press time in milliseconds
+        private Long releaseTimestamp;        // Precise release time (NULL if still held)
+        private Integer durationMs;           // How long button was held
+        
+        // Position at press/release
+        private Integer pressX;               // Screen X at press
+        private Integer pressY;               // Screen Y at press
+        private Integer releaseX;             // Screen X at release
+        private Integer releaseY;             // Screen Y at release
+        
+        // Context flags
+        private Boolean isClick;              // Short press/release (< 500ms)
+        private Boolean isDrag;               // Movement while held
+        private Boolean isCameraRotation;     // Middle mouse camera control
+        
+        // Camera rotation details (for middle mouse)
+        private Integer cameraStartPitch;     // Camera pitch at start
+        private Integer cameraStartYaw;       // Camera yaw at start
+        private Integer cameraEndPitch;       // Camera pitch at end
+        private Integer cameraEndYaw;         // Camera yaw at end
+        private Double rotationDistance;      // Total rotation amount
+        
+        public int getDataPointCount() { return 17; }
+        public long getEstimatedSize() { 
+            return 64 + (17 * 8) + 
+                (buttonType != null ? buttonType.length() * 2 : 0);
+        }
+    }
+    
+    /**
+     * Key combination tracking - Hotkeys and key combinations
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class KeyCombinationData
+    {
+        private String keyCombination;        // "Ctrl+C", "Alt+Tab", "Shift+F1", etc.
+        private Integer primaryKeyCode;       // Main key in combination
+        private java.util.List<Integer> modifierKeys; // Array of modifier key codes
+        
+        // Timing
+        private Long combinationTimestamp;
+        private Integer durationMs;
+        
+        // Classification
+        private String combinationType;       // HOTKEY, SHORTCUT, FUNCTION, MOVEMENT
+        private Boolean isGameHotkey;         // F1-F12 game functions
+        private Boolean isSystemShortcut;     // Alt+Tab, etc.
+        
+        public int getDataPointCount() { return 8; }
+        public long getEstimatedSize() { 
+            return 64 + (8 * 8) + 
+                (keyCombination != null ? keyCombination.length() * 2 : 0) +
+                (combinationType != null ? combinationType.length() * 2 : 0) +
+                (modifierKeys != null ? modifierKeys.size() * 4 : 0);
+        }
+    }
+    
+    /**
+     * Enhanced input data collection - Contains all input tracking
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class EnhancedInputData
+    {
+        // Current tick input summary
+        private Integer totalKeyPresses;      // Total key presses this tick
+        private Integer totalMouseClicks;     // Total mouse clicks this tick
+        private Integer totalKeyCombinations; // Total key combinations this tick
+        
+        // Active states
+        private Integer activeKeys;           // Currently held keys
+        private Integer activeMouseButtons;   // Currently held mouse buttons
+        
+        // Detailed tracking collections
+        private java.util.List<KeyPressData> keyPresses;
+        private java.util.List<MouseButtonData> mouseButtons;
+        private java.util.List<KeyCombinationData> keyCombinations;
+        
+        // Camera rotation detection
+        private Boolean cameraRotationActive; // Middle mouse camera control
+        private Double cameraRotationAmount;   // Total rotation this tick
+        
+        public int getDataPointCount() { 
+            int base = 7;
+            base += (keyPresses != null ? keyPresses.size() * 13 : 0);
+            base += (mouseButtons != null ? mouseButtons.size() * 17 : 0);
+            base += (keyCombinations != null ? keyCombinations.size() * 8 : 0);
+            return base;
+        }
+        
+        public long getEstimatedSize() { 
+            long size = 64 + (7 * 8);
+            size += (keyPresses != null ? keyPresses.stream().mapToLong(KeyPressData::getEstimatedSize).sum() : 0);
+            size += (mouseButtons != null ? mouseButtons.stream().mapToLong(MouseButtonData::getEstimatedSize).sum() : 0);
+            size += (keyCombinations != null ? keyCombinations.stream().mapToLong(KeyCombinationData::getEstimatedSize).sum() : 0);
+            return size;
+        }
+    }
+}

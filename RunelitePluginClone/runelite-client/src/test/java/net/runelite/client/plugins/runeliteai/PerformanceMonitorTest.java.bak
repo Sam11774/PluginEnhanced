@@ -1,0 +1,444 @@
+/*
+ * Copyright (c) 2024, RuneLiteAI Team
+ * All rights reserved.
+ */
+package net.runelite.client.plugins.runeliteai;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.After;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+/**
+ * Unit tests for PerformanceMonitor
+ * Tests adaptive performance monitoring, optimization, and metrics collection
+ */
+public class PerformanceMonitorTest {
+
+    @Mock
+    private DataCollectionManager dataCollectionManager;
+
+    private PerformanceMonitor performanceMonitor;
+    private AutoCloseable mocks;
+
+    @Before
+    public void setUp() {
+        mocks = MockitoAnnotations.openMocks(this);
+        performanceMonitor = new PerformanceMonitor();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        if (mocks != null) {
+            mocks.close();
+        }
+    }
+
+    @Test
+    public void testComponentTimingRecording() {
+        // Test recording component execution times
+        String componentName = "GameTickProcessor";
+        long executionTime = 250_000L; // 250 microseconds
+        
+        performanceMonitor.recordComponentTiming(componentName, executionTime);
+        
+        PerformanceMetrics metrics = performanceMonitor.getMetrics();
+        assertNotNull("Metrics should not be null", metrics);
+        assertTrue("Should have timing data for component", 
+                   metrics.componentTimings.containsKey(componentName));
+    }
+
+    @Test
+    public void testMultipleComponentTimings() {
+        // Test recording timings for multiple components
+        String[] components = {
+            "GameTickProcessor", "DataCollectionManager", "SecurityAnalyticsManager",
+            "CollectionLogManager", "PerformanceMonitor", "DatabaseManager"
+        };
+        
+        long[] timings = {250_000L, 180_000L, 95_000L, 45_000L, 30_000L, 120_000L};
+        
+        for (int i = 0; i < components.length; i++) {
+            performanceMonitor.recordComponentTiming(components[i], timings[i]);
+        }
+        
+        PerformanceMetrics metrics = performanceMonitor.getMetrics();
+        assertEquals("Should have timings for all components", 
+                     components.length, metrics.componentTimings.size());
+    }
+
+    @Test
+    public void testPerformanceThresholds() {
+        // Test performance threshold detection
+        Map<String, Long> thresholds = Map.of(
+            "GameTickProcessor", 1_000_000L, // 1ms threshold
+            "DataCollectionManager", 500_000L, // 0.5ms threshold
+            "SecurityAnalyticsManager", 200_000L // 0.2ms threshold
+        );
+        
+        performanceMonitor.setPerformanceThresholds(thresholds);
+        
+        // Record timing that exceeds threshold
+        performanceMonitor.recordComponentTiming("GameTickProcessor", 1_500_000L); // 1.5ms
+        
+        assertTrue("Should detect threshold exceeded", performanceMonitor.isPerformanceCritical());
+    }
+
+    @Test
+    public void testAdaptiveOptimization() {
+        // Test adaptive optimization functionality
+        
+        // Record consistently high execution times
+        for (int i = 0; i < 10; i++) {
+            performanceMonitor.recordComponentTiming("DataCollectionManager", 800_000L); // 0.8ms
+        }
+        
+        performanceMonitor.performAdaptiveOptimization();
+        
+        PerformanceMetrics metrics = performanceMonitor.getMetrics();
+        assertTrue("Should apply optimization when performance degrades", 
+                   metrics.optimizationsApplied > 0);
+    }
+
+    @Test
+    public void testMemoryMonitoring() {
+        // Test memory usage monitoring
+        performanceMonitor.recordMemoryUsage(128_000_000L); // 128MB
+        
+        PerformanceMetrics metrics = performanceMonitor.getMetrics();
+        assertTrue("Should record memory usage", metrics.memoryUsageMB > 0);
+        assertEquals("Memory usage should match recorded value", 
+                     128, metrics.memoryUsageMB, 1);
+    }
+
+    @Test
+    public void testCPUMonitoring() {
+        // Test CPU usage monitoring
+        double cpuUsage = 15.5; // 15.5% CPU usage
+        performanceMonitor.recordCPUUsage(cpuUsage);
+        
+        PerformanceMetrics metrics = performanceMonitor.getMetrics();
+        assertEquals("Should record CPU usage", cpuUsage, metrics.cpuUsagePercent, 0.1);
+    }
+
+    @Test
+    public void testPerformanceScoreCalculation() {
+        // Test performance score calculation
+        
+        // Record good performance
+        performanceMonitor.recordComponentTiming("GameTickProcessor", 200_000L); // 0.2ms - good
+        performanceMonitor.recordMemoryUsage(100_000_000L); // 100MB - reasonable
+        performanceMonitor.recordCPUUsage(10.0); // 10% - low
+        
+        double score = performanceMonitor.calculatePerformanceScore();
+        assertTrue("Good performance should have high score (>0.8)", score > 0.8);
+        assertTrue("Performance score should be between 0 and 1", score >= 0.0 && score <= 1.0);
+    }
+
+    @Test
+    public void testPoorPerformanceDetection() {
+        // Test detection of poor performance
+        
+        // Record poor performance
+        performanceMonitor.recordComponentTiming("GameTickProcessor", 2_000_000L); // 2ms - poor
+        performanceMonitor.recordMemoryUsage(500_000_000L); // 500MB - high
+        performanceMonitor.recordCPUUsage(80.0); // 80% - very high
+        
+        double score = performanceMonitor.calculatePerformanceScore();
+        assertTrue("Poor performance should have low score (<0.5)", score < 0.5);
+        assertTrue("Should detect performance as critical", performanceMonitor.isPerformanceCritical());
+    }
+
+    @Test
+    public void testOptimizationStrategies() {
+        // Test different optimization strategies
+        
+        // Simulate memory pressure
+        performanceMonitor.recordMemoryUsage(400_000_000L); // High memory usage
+        performanceMonitor.performAdaptiveOptimization();
+        
+        PerformanceMetrics metrics = performanceMonitor.getMetrics();
+        assertTrue("Should apply memory optimization", metrics.optimizationsApplied > 0);
+        
+        // Simulate CPU pressure
+        performanceMonitor.recordCPUUsage(70.0); // High CPU usage
+        performanceMonitor.performAdaptiveOptimization();
+        
+        metrics = performanceMonitor.getMetrics();
+        assertTrue("Should apply additional optimizations", metrics.optimizationsApplied > 1);
+    }
+
+    @Test
+    public void testTimingStatistics() {
+        // Test timing statistics calculation
+        String component = "TestComponent";
+        long[] timings = {100_000L, 150_000L, 200_000L, 120_000L, 180_000L}; // Various timings
+        
+        for (long timing : timings) {
+            performanceMonitor.recordComponentTiming(component, timing);
+        }
+        
+        TimingStatistics stats = performanceMonitor.getTimingStatistics(component);
+        assertNotNull("Should have statistics for component", stats);
+        assertTrue("Average should be reasonable", stats.averageNs > 0);
+        assertTrue("Max should be >= average", stats.maxNs >= stats.averageNs);
+        assertTrue("Min should be <= average", stats.minNs <= stats.averageNs);
+        assertEquals("Should have correct sample count", timings.length, stats.sampleCount);
+    }
+
+    @Test
+    public void testPerformanceHistoryTracking() {
+        // Test performance history tracking over time
+        long baseTime = System.currentTimeMillis();
+        
+        // Record performance over time
+        for (int i = 0; i < 60; i++) { // 1 minute of data (1 second intervals)
+            performanceMonitor.recordComponentTiming("GameTickProcessor", 
+                200_000L + (long)(Math.sin(i * 0.1) * 50_000L)); // Varying performance
+            
+            // Simulate time progression
+            try {
+                Thread.sleep(10); // Small delay to simulate time progression
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        
+        PerformanceHistory history = performanceMonitor.getPerformanceHistory();
+        assertNotNull("Should have performance history", history);
+        assertTrue("Should have historical data points", history.dataPoints.size() > 0);
+    }
+
+    @Test
+    public void testMemoryLeakDetection() {
+        // Test memory leak detection
+        
+        // Simulate gradually increasing memory usage
+        for (int i = 0; i < 20; i++) {
+            long memoryUsage = 100_000_000L + (i * 10_000_000L); // Increasing memory
+            performanceMonitor.recordMemoryUsage(memoryUsage);
+        }
+        
+        boolean memoryLeakDetected = performanceMonitor.detectMemoryLeak();
+        assertTrue("Should detect potential memory leak with increasing usage", memoryLeakDetected);
+    }
+
+    @Test
+    public void testGarbageCollectionMonitoring() {
+        // Test garbage collection monitoring
+        performanceMonitor.recordGarbageCollection(50L, 200_000_000L); // 50ms GC, 200MB collected
+        
+        PerformanceMetrics metrics = performanceMonitor.getMetrics();
+        assertTrue("Should record GC time", metrics.gcTimeMs > 0);
+        assertTrue("Should record GC memory", metrics.gcMemoryMB > 0);
+    }
+
+    @Test
+    public void testThreadPoolMonitoring() {
+        // Test thread pool monitoring
+        performanceMonitor.recordThreadPoolStats(8, 2, 1000); // 8 active, 2 queued, 1000 completed
+        
+        PerformanceMetrics metrics = performanceMonitor.getMetrics();
+        assertEquals("Should record active threads", 8, metrics.activeThreads);
+        assertEquals("Should record queued tasks", 2, metrics.queuedTasks);
+        assertEquals("Should record completed tasks", 1000, metrics.completedTasks);
+    }
+
+    @Test
+    public void testDatabaseLatencyMonitoring() {
+        // Test database latency monitoring
+        long[] latencies = {5L, 12L, 8L, 15L, 6L, 20L, 9L}; // Various latencies in ms
+        
+        for (long latency : latencies) {
+            performanceMonitor.recordDatabaseLatency(latency);
+        }
+        
+        DatabaseLatencyStats latencyStats = performanceMonitor.getDatabaseLatencyStats();
+        assertNotNull("Should have latency statistics", latencyStats);
+        assertTrue("Average latency should be reasonable", latencyStats.averageMs > 0);
+        assertTrue("Should track P95 latency", latencyStats.p95Ms > 0);
+        assertTrue("Should track P99 latency", latencyStats.p99Ms > 0);
+    }
+
+    @Test
+    public void testAlertGeneration() {
+        // Test performance alert generation
+        
+        // Create conditions that should trigger alerts
+        performanceMonitor.recordComponentTiming("GameTickProcessor", 5_000_000L); // 5ms - very slow
+        performanceMonitor.recordMemoryUsage(1_000_000_000L); // 1GB - very high
+        performanceMonitor.recordCPUUsage(95.0); // 95% - critical
+        
+        PerformanceAlert[] alerts = performanceMonitor.generateAlerts();
+        assertNotNull("Should generate alerts", alerts);
+        assertTrue("Should have alerts for poor performance", alerts.length > 0);
+        
+        boolean hasTimingAlert = false;
+        boolean hasMemoryAlert = false;
+        boolean hasCpuAlert = false;
+        
+        for (PerformanceAlert alert : alerts) {
+            if (alert.type.contains("timing")) hasTimingAlert = true;
+            if (alert.type.contains("memory")) hasMemoryAlert = true;
+            if (alert.type.contains("cpu")) hasCpuAlert = true;
+        }
+        
+        assertTrue("Should have timing alert", hasTimingAlert);
+        assertTrue("Should have memory alert", hasMemoryAlert);
+        assertTrue("Should have CPU alert", hasCpuAlert);
+    }
+
+    @Test
+    public void testOptimizationEffectiveness() {
+        // Test measuring optimization effectiveness
+        
+        // Record baseline performance
+        for (int i = 0; i < 10; i++) {
+            performanceMonitor.recordComponentTiming("TestComponent", 800_000L); // Poor performance
+        }
+        
+        performanceMonitor.performAdaptiveOptimization();
+        
+        // Record improved performance after optimization
+        for (int i = 0; i < 10; i++) {
+            performanceMonitor.recordComponentTiming("TestComponent", 300_000L); // Better performance
+        }
+        
+        double improvement = performanceMonitor.measureOptimizationEffectiveness("TestComponent");
+        assertTrue("Should show performance improvement", improvement > 0);
+        assertTrue("Improvement should be significant", improvement > 0.5);
+    }
+
+    @Test
+    public void testPerformanceReporting() {
+        // Test performance report generation
+        
+        // Generate some performance data
+        performanceMonitor.recordComponentTiming("GameTickProcessor", 250_000L);
+        performanceMonitor.recordComponentTiming("DataCollectionManager", 180_000L);
+        performanceMonitor.recordMemoryUsage(150_000_000L);
+        performanceMonitor.recordCPUUsage(25.0);
+        
+        PerformanceReport report = performanceMonitor.generatePerformanceReport();
+        assertNotNull("Should generate performance report", report);
+        assertNotNull("Report should have summary", report.summary);
+        assertNotNull("Report should have metrics", report.metrics);
+        assertTrue("Report should have recommendations", report.recommendations.length > 0);
+    }
+
+    @Test
+    public void testConcurrentPerformanceMonitoring() {
+        // Test thread safety of performance monitoring
+        
+        // Create multiple threads recording performance data
+        Thread[] threads = new Thread[5];
+        
+        for (int i = 0; i < threads.length; i++) {
+            final int threadId = i;
+            threads[i] = new Thread(() -> {
+                for (int j = 0; j < 100; j++) {
+                    performanceMonitor.recordComponentTiming("Thread" + threadId, 
+                        200_000L + (j * 1000L));
+                }
+            });
+        }
+        
+        // Start all threads
+        for (Thread thread : threads) {
+            thread.start();
+        }
+        
+        // Wait for completion
+        try {
+            for (Thread thread : threads) {
+                thread.join(5000);
+            }
+        } catch (InterruptedException e) {
+            fail("Concurrent monitoring test interrupted");
+        }
+        
+        PerformanceMetrics metrics = performanceMonitor.getMetrics();
+        assertTrue("Should have recorded data from all threads", 
+                   metrics.componentTimings.size() >= threads.length);
+    }
+
+    @Test
+    public void testPerformanceRequirements() {
+        // Test that performance monitoring itself meets performance requirements
+        long startTime = System.nanoTime();
+        
+        // Perform many monitoring operations
+        for (int i = 0; i < 1000; i++) {
+            performanceMonitor.recordComponentTiming("TestComponent", 250_000L);
+            if (i % 100 == 0) {
+                performanceMonitor.performAdaptiveOptimization();
+            }
+        }
+        
+        long endTime = System.nanoTime();
+        long durationMs = (endTime - startTime) / 1_000_000;
+        
+        assertTrue("Performance monitoring should be fast (under 100ms), took: " + durationMs + "ms", 
+                   durationMs < 100);
+    }
+
+    // Helper classes for performance monitoring data
+
+    public static class PerformanceMetrics {
+        public Map<String, Long> componentTimings;
+        public int memoryUsageMB;
+        public double cpuUsagePercent;
+        public int optimizationsApplied;
+        public int activeThreads;
+        public int queuedTasks;
+        public int completedTasks;
+        public long gcTimeMs;
+        public int gcMemoryMB;
+    }
+
+    public static class TimingStatistics {
+        public long averageNs;
+        public long minNs;
+        public long maxNs;
+        public int sampleCount;
+        public double standardDeviation;
+    }
+
+    public static class PerformanceHistory {
+        public java.util.List<PerformanceDataPoint> dataPoints;
+    }
+
+    public static class PerformanceDataPoint {
+        public long timestamp;
+        public double performanceScore;
+        public Map<String, Long> componentTimings;
+    }
+
+    public static class DatabaseLatencyStats {
+        public double averageMs;
+        public double p95Ms;
+        public double p99Ms;
+        public int sampleCount;
+    }
+
+    public static class PerformanceAlert {
+        public String type;
+        public String message;
+        public String severity;
+        public long timestamp;
+    }
+
+    public static class PerformanceReport {
+        public String summary;
+        public PerformanceMetrics metrics;
+        public String[] recommendations;
+        public PerformanceAlert[] alerts;
+    }
+}
