@@ -49,3 +49,9 @@ dependency-reduced-pom.xml
 *.key
 *.pem
 credentials.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
