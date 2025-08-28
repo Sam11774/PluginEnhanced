@@ -1,0 +1,89 @@
+#!/bin/bash
+# RuneLiteAI Environment Configuration
+# Source this file to set up your development environment
+# Usage: source .runeliteai_env
+
+# Project paths
+export RUNELITEAI_HOME="/d/RuneliteAI"
+export RUNELITE_CLONE="$RUNELITEAI_HOME/RunelitePluginClone"
+export PLUGIN_CODE="$RUNELITEAI_HOME/RunelitePluginCode"
+export BAT_FILES="$RUNELITEAI_HOME/Bat_Files"
+export PYTHON_VENV="$RUNELITEAI_HOME/f13.venv"
+
+# Java and Maven settings
+export JAVA_HOME=$(dirname $(dirname $(which java)))
+export MAVEN_OPTS="-Xmx2048m -XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+
+# Aliases for building
+alias rlai-build='echo "Building RuneLite with AI Plugin..." && cd "$RUNELITE_CLONE" && mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dcheckstyle.skip=true -Dpmd.skip=true && cd - > /dev/null'
+
+# Aliases for running
+alias rlai-run='echo "Starting RuneLite in Developer Mode..." && cd "$RUNELITE_CLONE" && mvn -pl runelite-client exec:java -Dexec.mainClass="net.runelite.client.RuneLite" -Dexec.args="--developer-mode" && cd - > /dev/null'
+
+# Quick build and run
+alias rlai-rebuild='rlai-build && rlai-run'
+
+# Database management
+alias rlai-db='cd "$BAT_FILES/Database" && cmd.exe /c MANAGE_DATABASE.bat && cd - > /dev/null'
+
+# Start PostgreSQL service (Windows)
+alias pg-start='echo "Starting PostgreSQL service..." && cmd.exe /c "net start postgresql-x64-17" 2>/dev/null || cmd.exe /c "net start postgresql-x64-16" 2>/dev/null || cmd.exe /c "net start postgresql-x64-15" 2>/dev/null || cmd.exe /c "net start postgresql-x64-14" 2>/dev/null || echo "Could not start PostgreSQL. Try running as Administrator."'
+
+# Stop PostgreSQL service (Windows)
+alias pg-stop='echo "Stopping PostgreSQL service..." && cmd.exe /c "net stop postgresql-x64-17" 2>/dev/null || cmd.exe /c "net stop postgresql-x64-16" 2>/dev/null || cmd.exe /c "net stop postgresql-x64-15" 2>/dev/null || cmd.exe /c "net stop postgresql-x64-14" 2>/dev/null'
+
+# Check PostgreSQL status (modified to avoid timeout)
+pg-status() {
+    timeout 2 psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT 1;" 2>/dev/null && echo "PostgreSQL is running" || echo "PostgreSQL is not running"
+}
+
+# Python virtual environment
+alias venv-activate='source "$PYTHON_VENV/Scripts/activate"'
+alias rlai-python='venv-activate && cd "$RUNELITEAI_HOME"'
+
+# Quick navigation
+alias cdrlai='cd "$RUNELITEAI_HOME"'
+alias cdplugin='cd "$RUNELITE_CLONE/runelite-client/src/main/java/net/runelite/client/plugins/runeliteai"'
+alias cdcode='cd "$PLUGIN_CODE/src/main/java/runeliteai"'
+
+# View logs
+alias rlai-logs='ls -la "$RUNELITEAI_HOME/logs" 2>/dev/null || echo "No logs directory found"'
+
+# Quick plugin edit
+alias edit-plugin='cd "$RUNELITE_CLONE/runelite-client/src/main/java/net/runelite/client/plugins/runeliteai" && echo "You are now in the plugin directory. Main files: RuneliteAIPlugin.java, RuneliteAIConfig.java"'
+
+# Status check function
+rlai-status() {
+    echo "=== RuneLiteAI Environment Status ==="
+    echo ""
+    echo "Directory: $RUNELITEAI_HOME"
+    echo "Java Version: $(java -version 2>&1 | head -1)"
+    echo "Maven Version: $(mvn -version 2>&1 | head -1)"
+    echo ""
+    echo -n "PostgreSQL: "
+    timeout 2 psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT 1;" 2>/dev/null && echo "Running" || echo "Not running"
+    echo ""
+    echo "Python Virtual Environment: $PYTHON_VENV"
+    if [ -d "$PYTHON_VENV" ]; then
+        echo "  Status: Available"
+    else
+        echo "  Status: Not found"
+    fi
+    echo ""
+    echo "=== Available Commands ==="
+    echo "  rlai-build     - Build RuneLite with AI plugin"
+    echo "  rlai-run       - Run RuneLite in developer mode"  
+    echo "  rlai-rebuild   - Build and run RuneLite"
+    echo "  rlai-db        - Open database management tool"
+    echo "  pg-start       - Start PostgreSQL service"
+    echo "  pg-stop        - Stop PostgreSQL service"
+    echo "  pg-status      - Check PostgreSQL status"
+    echo "  venv-activate  - Activate Python virtual environment"
+    echo "  cdrlai         - Navigate to project root"
+    echo "  cdplugin       - Navigate to plugin source"
+    echo "  edit-plugin    - Navigate to plugin directory for editing"
+    echo "  rlai-status    - Show this status"
+}
+
+# Display status on load
+echo "RuneLiteAI environment loaded! Type 'rlai-status' to see available commands."

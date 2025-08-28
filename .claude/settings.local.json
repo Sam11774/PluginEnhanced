@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./test-multiline.sh)",
+      "Bash(mkdir:*)",
+      "Bash(bash \"C:\\Users\\gamer\\.claude\\statusline-command.sh\")",
+      "Bash(mvn clean:*)",
+      "Bash(.Bat_Files2_COPY_PLUGIN_TO_RUNELITE.bat)",
+      "Bash(cp:*)",
+      "Bash(mvn compile:*)",
+      "Bash(rm:*)",
+      "Bash(./3_BUILD_RUNELITE_LATEST.bat)",
+      "Bash(.Bat_Files3_BUILD_RUNELITE_LATEST.bat)",
+      "Bash(.Bat_Files4_START_RUNELITE_LATEST.bat)",
+      "Bash(\"Bat_Files/4_START_RUNELITE_LATEST.bat\")",
+      "Bash(find:*)",
+      "Bash(\".\\Bat_Files\\3_BUILD_RUNELITE_LATEST.bat\")",
+      "Bash(grep:*)",
+      "Bash(\".\\Bat_Files\\4_START_RUNELITE_LATEST.bat\")",
+      "Bash(sed:*)",
+      "Bash(javac:*)",
+      "Bash(\"Bat_Files/3_BUILD_RUNELITE_LATEST.bat\")",
+      "Bash(set \"MAVEN_HOME=C:\\tools\\apache-maven-3.9.9\")",
+      "Bash(mvn test:*)",
+      "Bash(mvn:*)",
+      "Bash(set MAVEN_OPTS=-ea)",
+      "Bash(python:*)",
+      "Bash(mv:*)",
+      "Bash(cmd /c:*)",
+      "Bash(set PGPASSWORD=sam11773)",
+      "Bash(\"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\" -U postgres -h localhost -p 5432 -d runelite_ai -c \"\\d sessions\")",
+      "Bash(\"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\" -U postgres -h localhost -p 5432 -d runelite_ai -c \"SELECT COUNT(*) as session_count FROM sessions; SELECT COUNT(*) as tick_count FROM game_ticks LIMIT 5;\")",
+      "Bash(\"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\" -U postgres -h localhost -p 5432 -d runelite_ai -c \"SELECT session_id, player_name, start_time FROM sessions ORDER BY session_id DESC LIMIT 5;\")",
+      "Bash(\".\\Bat_Files\\RUN_ALL_TESTS.bat\")",
+      "Bash(timeout:*)",
+      "Bash(\".\\Bat_Files\\RUN_ALL_TESTS_SIMPLE.bat\")",
+      "Bash(gh repo create:*)",
+      "Read(/D:\\d D:\\RuneliteAI/**)",
+      "Bash(\".\\Bat_Files\\RUNELITE_AI_MASTER.bat\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\gamer",
+      "D:\\d\\RuneliteAI\\RunelitePluginClone",
+      "D:\\"
+    ]
+  }
+}

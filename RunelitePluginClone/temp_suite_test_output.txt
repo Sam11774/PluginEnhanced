@@ -1,0 +1,215 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] RuneLite                                                           [pom]
+[INFO] Cache                                                              [jar]
+[INFO] RuneLite Maven Plugin                                     [maven-plugin]
+[INFO] RuneLite API                                                       [jar]
+[INFO] RuneLite JShell                                                    [jar]
+[INFO] RuneLite Client                                                    [jar]
+[INFO] 
+[INFO] --------------------< net.runelite:runelite-parent >--------------------
+[INFO] Building RuneLite 1.11.15-SNAPSHOT                                 [1/6]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ runelite-parent ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- checkstyle:2.17:check (verify-style) @ runelite-parent ---
+[INFO] 
+[INFO] -------------------------< net.runelite:cache >-------------------------
+[INFO] Building Cache 1.11.15-SNAPSHOT                                    [2/6]
+[INFO]   from cache\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- antlr4:4.13.1:antlr4 (process-resources) @ cache ---
+[INFO] No grammars to process
+[INFO] ANTLR 4: Processing source directory D:\RuneliteAI\RunelitePluginClone\cache\src\main\antlr4
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ cache ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ cache ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.6.1:compile (default-compile) @ cache ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- checkstyle:2.17:check (verify-style) @ cache ---
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ cache ---
+[INFO] Copying 6 resources from src\test\resources to target\test-classes
+[INFO] The encoding used to copy filtered properties files have not been set. This means that the same encoding will be used to copy filtered properties files as when copying other filtered resources. This might not be what you want! Run your build with --debug to see which files might be affected. Read more at https://maven.apache.org/plugins/maven-resources-plugin/examples/filtering-properties-files.html
+[INFO] 
+[INFO] --- compiler:3.6.1:testCompile (default-testCompile) @ cache ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:2.22.2:test (default-test) @ cache ---
+[WARNING]  Parameter 'systemProperties' is deprecated: Use systemPropertyVariables instead.
+[INFO] 
+[INFO] -----------------< net.runelite:runelite-maven-plugin >-----------------
+[INFO] Building RuneLite Maven Plugin 1.11.15-SNAPSHOT                    [3/6]
+[INFO]   from runelite-maven-plugin\pom.xml
+[INFO] ----------------------------[ maven-plugin ]----------------------------
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ runelite-maven-plugin ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- plugin:3.6.4:helpmojo (help-goal) @ runelite-maven-plugin ---
+[INFO] Using 'UTF-8' encoding to read mojo source files.
+[INFO] java-javadoc mojo extractor found 0 mojo descriptor.
+[INFO] bsh mojo extractor found 0 mojo descriptor.
+[INFO] ant mojo extractor found 0 mojo descriptor.
+[INFO] java-annotations mojo extractor found 4 mojo descriptors.
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ runelite-maven-plugin ---
+[INFO] skip non existing resourceDirectory D:\RuneliteAI\RunelitePluginClone\runelite-maven-plugin\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.6.1:compile (default-compile) @ runelite-maven-plugin ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 4 source files to D:\RuneliteAI\RunelitePluginClone\runelite-maven-plugin\target\classes
+[INFO] 
+[INFO] --- plugin:3.6.4:descriptor (default-descriptor) @ runelite-maven-plugin ---
+[INFO] Using 'UTF-8' encoding to read mojo source files.
+[INFO] java-javadoc mojo extractor found 0 mojo descriptor.
+[INFO] bsh mojo extractor found 0 mojo descriptor.
+[INFO] ant mojo extractor found 0 mojo descriptor.
+[INFO] java-annotations mojo extractor found 4 mojo descriptors.
+[INFO] 
+[INFO] --- checkstyle:2.17:check (verify-style) @ runelite-maven-plugin ---
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ runelite-maven-plugin ---
+[INFO] skip non existing resourceDirectory D:\RuneliteAI\RunelitePluginClone\runelite-maven-plugin\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.6.1:testCompile (default-testCompile) @ runelite-maven-plugin ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:2.22.2:test (default-test) @ runelite-maven-plugin ---
+[WARNING]  Parameter 'systemProperties' is deprecated: Use systemPropertyVariables instead.
+[INFO] No tests to run.
+[INFO] 
+[INFO] ---------------------< net.runelite:runelite-api >----------------------
+[INFO] Building RuneLite API 1.11.15-SNAPSHOT                             [4/6]
+[INFO]   from runelite-api\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ runelite-api ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- runelite:1.11.15-SNAPSHOT:pack-components (pack-components) @ runelite-api ---
+ANTLR Tool version 4.11.1 used for code generation does not match the current runtime version 4.13.1
+ANTLR Runtime version 4.11.1 used for parser compilation does not match the current runtime version 4.13.1
+ANTLR Tool version 4.11.1 used for code generation does not match the current runtime version 4.13.1
+ANTLR Runtime version 4.11.1 used for parser compilation does not match the current runtime version 4.13.1
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ runelite-api ---
+[INFO] skip non existing resourceDirectory D:\RuneliteAI\RunelitePluginClone\runelite-api\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.6.1:compile (default-compile) @ runelite-api ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 285 source files to D:\RuneliteAI\RunelitePluginClone\runelite-api\target\classes
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-api/src/main/java/net/runelite/api/Client.java: Some input files use or override a deprecated API.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-api/src/main/java/net/runelite/api/Client.java: Recompile with -Xlint:deprecation for details.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-api/src/main/java/net/runelite/api/geometry/Shapes.java: D:\RuneliteAI\RunelitePluginClone\runelite-api\src\main\java\net\runelite\api\geometry\Shapes.java uses unchecked or unsafe operations.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-api/src/main/java/net/runelite/api/geometry/Shapes.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- checkstyle:2.17:check (verify-style) @ runelite-api ---
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ runelite-api ---
+[INFO] skip non existing resourceDirectory D:\RuneliteAI\RunelitePluginClone\runelite-api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.6.1:testCompile (default-testCompile) @ runelite-api ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:2.22.2:test (default-test) @ runelite-api ---
+[WARNING]  Parameter 'systemProperties' is deprecated: Use systemPropertyVariables instead.
+[INFO] 
+[INFO] ------------------------< net.runelite:jshell >-------------------------
+[INFO] Building RuneLite JShell 1.11.15-SNAPSHOT                          [5/6]
+[INFO]   from runelite-jshell\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ jshell ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ jshell ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.6.1:compile (default-compile) @ jshell ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- checkstyle:2.17:check (verify-style) @ jshell ---
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ jshell ---
+[INFO] skip non existing resourceDirectory D:\RuneliteAI\RunelitePluginClone\runelite-jshell\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.6.1:testCompile (default-testCompile) @ jshell ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:2.22.2:test (default-test) @ jshell ---
+[WARNING]  Parameter 'systemProperties' is deprecated: Use systemPropertyVariables instead.
+[INFO] No tests to run.
+[INFO] 
+[INFO] ------------------------< net.runelite:client >-------------------------
+[INFO] Building RuneLite Client 1.11.15-SNAPSHOT                          [6/6]
+[INFO]   from runelite-client\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+Downloading from runelite: https://repo.runelite.net/net/runelite/injected-client/1.11.15-SNAPSHOT/maven-metadata.xml
+Progress (1): 783 B                   Downloaded from runelite: https://repo.runelite.net/net/runelite/injected-client/1.11.15-SNAPSHOT/maven-metadata.xml (783 B at 1.5 kB/s)
+[INFO] 
+[INFO] --- git-commit-id:2.2.6:revision (query-git-info) @ client ---
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ client ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- runelite:1.11.15-SNAPSHOT:assemble (assemble) @ client ---
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\BankMainBuild.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\BankpinButtonSetup.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\BankSearchFilter.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatboxInputWidgetBuilder.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatBuilder.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatDefaultOnKey.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatSend.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatSplitBuilder.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatTimestamp.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\CombatInterfaceSP.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\DestroyOnOpKey.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ExamineItem.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\FakeXpDrop.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\FriendsChatSendKick.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\FriendUpdate.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\GeExamineInfoText.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\GELayout.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\IgnoreUpdate.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\LayoutResizableStones.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\MagicSpellbookRedraw.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\NewOptionsPanelZoomListener.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\NewOptionsPanelZoomSetter.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\NewOptionsPanelZoomSlider.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\null.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\OpenBankSearchInput.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\OptionsPanelRebuilder.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\OptionsPanelZoomMouseListener.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\OptionsPanelZoomUpdater.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\PrivateMessage.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\QuestFilter.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ScrollWheelZoomHandler.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\SendPrivateMessage.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\SkillTabBuilder.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\SkillTabTotalLevel.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\TriggerBankLayout.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ZoomHandler.rs2asm
+[info] Assembled 36 scripts
+[INFO] 
+[INFO] --- runelite:1.11.15-SNAPSHOT:build-index (build-index) @ client ---
+[INFO] 
+[INFO] --- resources:3.0.2:resources (default-resources) @ client ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 673 resources
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- compiler:3.6.1:compile (default-compile) @ client ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 1208 source files to D:\RuneliteAI\RunelitePluginClone\runelite-client\target\classes

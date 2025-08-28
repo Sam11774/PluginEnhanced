@@ -1,0 +1,908 @@
+[INFO] Scanning for projects...
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] RuneLite                                                           [pom]
+[INFO] Cache                                                              [jar]
+[INFO] RuneLite Maven Plugin                                     [maven-plugin]
+[INFO] RuneLite API                                                       [jar]
+[INFO] RuneLite JShell                                                    [jar]
+[INFO] RuneLite Client                                                    [jar]
+[INFO] 
+[INFO] --------------------< net.runelite:runelite-parent >--------------------
+[INFO] Building RuneLite 1.11.15-SNAPSHOT                                 [1/6]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ runelite-parent ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- checkstyle:2.17:check (verify-style) @ runelite-parent ---
+[INFO] 
+[INFO] -------------------------< net.runelite:cache >-------------------------
+[INFO] Building Cache 1.11.15-SNAPSHOT                                    [2/6]
+[INFO]   from cache\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- antlr4:4.13.1:antlr4 (process-resources) @ cache ---
+[INFO] No grammars to process
+[INFO] ANTLR 4: Processing source directory D:\RuneliteAI\RunelitePluginClone\cache\src\main\antlr4
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ cache ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ cache ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.6.1:compile (default-compile) @ cache ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- checkstyle:2.17:check (verify-style) @ cache ---
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ cache ---
+[INFO] Copying 6 resources from src\test\resources to target\test-classes
+[INFO] The encoding used to copy filtered properties files have not been set. This means that the same encoding will be used to copy filtered properties files as when copying other filtered resources. This might not be what you want! Run your build with --debug to see which files might be affected. Read more at https://maven.apache.org/plugins/maven-resources-plugin/examples/filtering-properties-files.html
+[INFO] 
+[INFO] --- compiler:3.6.1:testCompile (default-testCompile) @ cache ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:2.22.2:test (default-test) @ cache ---
+[WARNING]  Parameter 'systemProperties' is deprecated: Use systemPropertyVariables instead.
+[INFO] 
+[INFO] -----------------< net.runelite:runelite-maven-plugin >-----------------
+[INFO] Building RuneLite Maven Plugin 1.11.15-SNAPSHOT                    [3/6]
+[INFO]   from runelite-maven-plugin\pom.xml
+[INFO] ----------------------------[ maven-plugin ]----------------------------
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ runelite-maven-plugin ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- plugin:3.6.4:helpmojo (help-goal) @ runelite-maven-plugin ---
+[INFO] Using 'UTF-8' encoding to read mojo source files.
+[INFO] java-javadoc mojo extractor found 0 mojo descriptor.
+[INFO] ant mojo extractor found 0 mojo descriptor.
+[INFO] bsh mojo extractor found 0 mojo descriptor.
+[INFO] java-annotations mojo extractor found 4 mojo descriptors.
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ runelite-maven-plugin ---
+[INFO] skip non existing resourceDirectory D:\RuneliteAI\RunelitePluginClone\runelite-maven-plugin\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.6.1:compile (default-compile) @ runelite-maven-plugin ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 4 source files to D:\RuneliteAI\RunelitePluginClone\runelite-maven-plugin\target\classes
+[INFO] 
+[INFO] --- plugin:3.6.4:descriptor (default-descriptor) @ runelite-maven-plugin ---
+[INFO] Using 'UTF-8' encoding to read mojo source files.
+[INFO] java-javadoc mojo extractor found 0 mojo descriptor.
+[INFO] ant mojo extractor found 0 mojo descriptor.
+[INFO] bsh mojo extractor found 0 mojo descriptor.
+[INFO] java-annotations mojo extractor found 4 mojo descriptors.
+[INFO] 
+[INFO] --- checkstyle:2.17:check (verify-style) @ runelite-maven-plugin ---
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ runelite-maven-plugin ---
+[INFO] skip non existing resourceDirectory D:\RuneliteAI\RunelitePluginClone\runelite-maven-plugin\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.6.1:testCompile (default-testCompile) @ runelite-maven-plugin ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:2.22.2:test (default-test) @ runelite-maven-plugin ---
+[WARNING]  Parameter 'systemProperties' is deprecated: Use systemPropertyVariables instead.
+[INFO] No tests to run.
+[INFO] 
+[INFO] ---------------------< net.runelite:runelite-api >----------------------
+[INFO] Building RuneLite API 1.11.15-SNAPSHOT                             [4/6]
+[INFO]   from runelite-api\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ runelite-api ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- runelite:1.11.15-SNAPSHOT:pack-components (pack-components) @ runelite-api ---
+ANTLR Tool version 4.11.1 used for code generation does not match the current runtime version 4.13.1
+ANTLR Runtime version 4.11.1 used for parser compilation does not match the current runtime version 4.13.1
+ANTLR Tool version 4.11.1 used for code generation does not match the current runtime version 4.13.1
+ANTLR Runtime version 4.11.1 used for parser compilation does not match the current runtime version 4.13.1
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ runelite-api ---
+[INFO] skip non existing resourceDirectory D:\RuneliteAI\RunelitePluginClone\runelite-api\src\main\resources
+[INFO] 
+[INFO] --- compiler:3.6.1:compile (default-compile) @ runelite-api ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 285 source files to D:\RuneliteAI\RunelitePluginClone\runelite-api\target\classes
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-api/src/main/java/net/runelite/api/Client.java: Some input files use or override a deprecated API.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-api/src/main/java/net/runelite/api/Client.java: Recompile with -Xlint:deprecation for details.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-api/src/main/java/net/runelite/api/geometry/Shapes.java: D:\RuneliteAI\RunelitePluginClone\runelite-api\src\main\java\net\runelite\api\geometry\Shapes.java uses unchecked or unsafe operations.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-api/src/main/java/net/runelite/api/geometry/Shapes.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- checkstyle:2.17:check (verify-style) @ runelite-api ---
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ runelite-api ---
+[INFO] skip non existing resourceDirectory D:\RuneliteAI\RunelitePluginClone\runelite-api\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.6.1:testCompile (default-testCompile) @ runelite-api ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- surefire:2.22.2:test (default-test) @ runelite-api ---
+[WARNING]  Parameter 'systemProperties' is deprecated: Use systemPropertyVariables instead.
+[INFO] 
+[INFO] ------------------------< net.runelite:jshell >-------------------------
+[INFO] Building RuneLite JShell 1.11.15-SNAPSHOT                          [5/6]
+[INFO]   from runelite-jshell\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ jshell ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ jshell ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.6.1:compile (default-compile) @ jshell ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- checkstyle:2.17:check (verify-style) @ jshell ---
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ jshell ---
+[INFO] skip non existing resourceDirectory D:\RuneliteAI\RunelitePluginClone\runelite-jshell\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.6.1:testCompile (default-testCompile) @ jshell ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:2.22.2:test (default-test) @ jshell ---
+[WARNING]  Parameter 'systemProperties' is deprecated: Use systemPropertyVariables instead.
+[INFO] No tests to run.
+[INFO] 
+[INFO] ------------------------< net.runelite:client >-------------------------
+[INFO] Building RuneLite Client 1.11.15-SNAPSHOT                          [6/6]
+[INFO]   from runelite-client\pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+Downloading from runelite: https://repo.runelite.net/net/runelite/injected-client/1.11.15-SNAPSHOT/maven-metadata.xml
+Progress (1): 783 B                   Downloaded from runelite: https://repo.runelite.net/net/runelite/injected-client/1.11.15-SNAPSHOT/maven-metadata.xml (783 B at 1.4 kB/s)
+[INFO] 
+[INFO] --- git-commit-id:2.2.6:revision (query-git-info) @ client ---
+[INFO] 
+[INFO] --- lombok:1.18.20.0:delombok (default) @ client ---
+[WARNING] Skipping Delombok
+[INFO] 
+[INFO] --- runelite:1.11.15-SNAPSHOT:assemble (assemble) @ client ---
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\BankMainBuild.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\BankpinButtonSetup.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\BankSearchFilter.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatboxInputWidgetBuilder.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatBuilder.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatDefaultOnKey.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatSend.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatSplitBuilder.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ChatTimestamp.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\CombatInterfaceSP.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\DestroyOnOpKey.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ExamineItem.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\FakeXpDrop.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\FriendsChatSendKick.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\FriendUpdate.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\GeExamineInfoText.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\GELayout.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\IgnoreUpdate.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\LayoutResizableStones.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\MagicSpellbookRedraw.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\NewOptionsPanelZoomListener.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\NewOptionsPanelZoomSetter.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\NewOptionsPanelZoomSlider.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\null.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\OpenBankSearchInput.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\OptionsPanelRebuilder.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\OptionsPanelZoomMouseListener.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\OptionsPanelZoomUpdater.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\PrivateMessage.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\QuestFilter.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ScrollWheelZoomHandler.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\SendPrivateMessage.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\SkillTabBuilder.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\SkillTabTotalLevel.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\TriggerBankLayout.rs2asm
+[debug] Assembling D:\RuneliteAI\RunelitePluginClone\runelite-client\src\main\scripts\ZoomHandler.rs2asm
+[info] Assembled 36 scripts
+[INFO] 
+[INFO] --- runelite:1.11.15-SNAPSHOT:build-index (build-index) @ client ---
+[INFO] 
+[INFO] --- resources:3.0.2:resources (default-resources) @ client ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 673 resources
+[INFO] Copying 1 resource
+[INFO] 
+[INFO] --- compiler:3.6.1:compile (default-compile) @ client ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 1208 source files to D:\RuneliteAI\RunelitePluginClone\runelite-client\target\classes
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/main/java/net/runelite/client/ui/overlay/Overlay.java: Some input files use or override a deprecated API.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/main/java/net/runelite/client/ui/overlay/Overlay.java: Recompile with -Xlint:deprecation for details.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/main/java/net/runelite/client/util/RSTimeUnit.java: Some input files use unchecked or unsafe operations.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/main/java/net/runelite/client/util/RSTimeUnit.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- checkstyle:2.17:check (verify-style) @ client ---
+[INFO] 
+[INFO] --- resources:3.0.2:testResources (default-testResources) @ client ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Copying 2 resources
+[INFO] 
+[INFO] --- compiler:3.6.1:testCompile (default-testCompile) @ client ---
+[INFO] Changes detected - recompiling the module!
+[INFO] Compiling 132 source files to D:\RuneliteAI\RunelitePluginClone\runelite-client\target\test-classes
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/cooking/CookingPluginTest.java: Some input files use or override a deprecated API.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/cooking/CookingPluginTest.java: Recompile with -Xlint:deprecation for details.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/cluescrolls/ClueScrollPluginTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/cluescrolls/ClueScrollPluginTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[52,20] cannot find symbol
+  symbol:   method enableDataCollection()
+  location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[54,20] cannot find symbol
+  symbol:   method databaseUrl()
+  location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[58,20] cannot find symbol
+  symbol:   method performanceThresholdMs()
+  location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[59,20] cannot find symbol
+  symbol:   method connectionTimeout()
+  location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[60,20] cannot find symbol
+  symbol:   method maxConnections()
+  location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[61,20] cannot find symbol
+  symbol:   method enableSecurityAnalytics()
+  location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[62,20] cannot find symbol
+  symbol:   method enableCollectionLogTracking()
+  location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[33,35] cannot find symbol
+  symbol:   method openMocks(net.runelite.client.plugins.runeliteai.PerformanceMonitorTest)
+  location: class org.mockito.MockitoAnnotations
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[52,56] cannot find symbol
+  symbol:   method getMetrics()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[72,56] cannot find symbol
+  symbol:   method getMetrics()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[86,27] cannot find symbol
+  symbol:   method setPerformanceThresholds(java.util.Map<java.lang.String,java.lang.Long>)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[91,74] cannot find symbol
+  symbol:   method isPerformanceCritical()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[105,56] cannot find symbol
+  symbol:   method getMetrics()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[113,27] cannot find symbol
+  symbol:   method recordMemoryUsage(long)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[115,56] cannot find symbol
+  symbol:   method getMetrics()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[125,27] cannot find symbol
+  symbol:   method recordCPUUsage(double)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[127,56] cannot find symbol
+  symbol:   method getMetrics()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[137,27] cannot find symbol
+  symbol:   method recordMemoryUsage(long)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[138,27] cannot find symbol
+  symbol:   method recordCPUUsage(double)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[140,42] cannot find symbol
+  symbol:   method calculatePerformanceScore()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[151,27] cannot find symbol
+  symbol:   method recordMemoryUsage(long)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[152,27] cannot find symbol
+  symbol:   method recordCPUUsage(double)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[154,42] cannot find symbol
+  symbol:   method calculatePerformanceScore()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[156,79] cannot find symbol
+  symbol:   method isPerformanceCritical()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[164,27] cannot find symbol
+  symbol:   method recordMemoryUsage(long)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[167,56] cannot find symbol
+  symbol:   method getMetrics()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[171,27] cannot find symbol
+  symbol:   method recordCPUUsage(double)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[174,37] cannot find symbol
+  symbol:   method getMetrics()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[188,52] cannot find symbol
+  symbol:   method getTimingStatistics(java.lang.String)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[214,56] cannot find symbol
+  symbol:   method getPerformanceHistory()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[226,31] cannot find symbol
+  symbol:   method recordMemoryUsage(long)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[229,56] cannot find symbol
+  symbol:   method detectMemoryLeak()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[236,27] cannot find symbol
+  symbol:   method recordGarbageCollection(long,long)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[238,56] cannot find symbol
+  symbol:   method getMetrics()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[246,27] cannot find symbol
+  symbol:   method recordThreadPoolStats(int,int,int)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[248,56] cannot find symbol
+  symbol:   method getMetrics()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[260,31] cannot find symbol
+  symbol:   method recordDatabaseLatency(long)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[263,63] cannot find symbol
+  symbol:   method getDatabaseLatencyStats()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[276,27] cannot find symbol
+  symbol:   method recordMemoryUsage(long)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[277,27] cannot find symbol
+  symbol:   method recordCPUUsage(double)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[279,55] cannot find symbol
+  symbol:   method generateAlerts()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[314,48] cannot find symbol
+  symbol:   method measureOptimizationEffectiveness(java.lang.String)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[326,27] cannot find symbol
+  symbol:   method recordMemoryUsage(long)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[327,27] cannot find symbol
+  symbol:   method recordCPUUsage(double)
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[329,54] cannot find symbol
+  symbol:   method generatePerformanceReport()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[367,56] cannot find symbol
+  symbol:   method getMetrics()
+  location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[43,35] cannot find symbol
+  symbol:   method openMocks(net.runelite.client.plugins.runeliteai.SecurityAnalyticsManagerTest)
+  location: class org.mockito.MockitoAnnotations
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[66,24] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: net.runelite.api.coords.WorldPoint,long
+  found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[69,43] cannot find symbol
+  symbol:   method calculateRiskScore()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[81,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: net.runelite.api.coords.WorldPoint,long
+  found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[84,43] cannot find symbol
+  symbol:   method calculateRiskScore()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[97,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: int,int,java.lang.String,long
+  found:    int,int,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[100,43] cannot find symbol
+  symbol:   method calculateRiskScore()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[110,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: int,int,java.lang.String,long
+  found:    int,int,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[113,43] cannot find symbol
+  symbol:   method calculateRiskScore()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[127,28] cannot find symbol
+  symbol:   method analyzeCamera(int,int,long)
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[134,43] cannot find symbol
+  symbol:   method calculateRiskScore()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[144,28] cannot find symbol
+  symbol:   method analyzeCamera(int,int,long)
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[147,43] cannot find symbol
+  symbol:   method calculateRiskScore()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[154,56] method performSecurityAnalysis in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: long
+  found:    no arguments
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[174,41] cannot find symbol
+  symbol:   method calculateRiskScore()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[180,42] cannot find symbol
+  symbol:   method calculateRiskScore()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[199,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: net.runelite.api.coords.WorldPoint,long
+  found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[206,45] cannot find symbol
+  symbol:   method getMovementConsistency()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[220,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: int,int,java.lang.String,long
+  found:    int,int,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[227,42] cannot find symbol
+  symbol:   method getClickTimingVariance()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[241,28] cannot find symbol
+  symbol:   method analyzeCamera(int,int,long)
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[244,44] cannot find symbol
+  symbol:   method getCameraSmoothness()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[256,56] method performSecurityAnalysis in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: long
+  found:    no arguments
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[272,54] cannot find symbol
+  symbol:   method getBehavioralMetrics()
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[290,24] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: net.runelite.api.coords.WorldPoint,long
+  found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[296,24] method performSecurityAnalysis in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: long
+  found:    no arguments
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[299,53] method recordSecurityAnalysis in class net.runelite.client.plugins.runeliteai.DataCollectionManager cannot be applied to given types;
+  required: double,java.lang.String,int,int,long
+  found:    java.lang.Object
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[309,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: net.runelite.api.coords.WorldPoint,long
+  found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[316,24] method performSecurityAnalysis in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: long
+  found:    no arguments
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[334,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: net.runelite.api.coords.WorldPoint,long
+  found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[339,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: int,int,java.lang.String,long
+  found:    int,int,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[348,28] cannot find symbol
+  symbol:   method analyzeCamera(int,int,long)
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[363,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: net.runelite.api.coords.WorldPoint,long
+  found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[368,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: int,int,java.lang.String,long
+  found:    int,int,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[373,28] cannot find symbol
+  symbol:   method analyzeCamera(int,int,long)
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[385,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: net.runelite.api.coords.WorldPoint,long
+  found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[388,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: int,int,java.lang.String,long
+  found:    int,int,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[391,28] cannot find symbol
+  symbol:   method analyzeCamera(int,int,long)
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[403,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: net.runelite.api.coords.WorldPoint,long
+  found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[406,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+  required: int,int,java.lang.String,long
+  found:    int,int,long
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[414,32] cannot find symbol
+  symbol:   method analyzeCamera(int,int,long)
+  location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[48,35] cannot find symbol
+  symbol:   method openMocks(net.runelite.client.plugins.runeliteai.DatabaseManagerTest)
+  location: class org.mockito.MockitoAnnotations
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[51,20] cannot find symbol
+  symbol:   method databaseUrl()
+  location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[55,20] cannot find symbol
+  symbol:   method connectionTimeout()
+  location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[56,20] cannot find symbol
+  symbol:   method maxConnections()
+  location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[64,27] constructor DatabaseManager in class net.runelite.client.plugins.runeliteai.DatabaseManager cannot be applied to given types;
+  required: no arguments
+  found:    net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+  reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[80,28] cannot find symbol
+  symbol:   method shutdown()
+  location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[90,68] cannot find symbol
+  symbol:   method testConnection()
+  location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[94,74] cannot find symbol
+  symbol:   method isConnected()
+  location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[102,68] cannot find symbol
+  symbol:   method testConnection()
+  location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[106,78] cannot find symbol
+  symbol:   method isConnected()
+  location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[126,63] cannot find symbol
+  symbol:   method insertGameTick(net.runelite.client.plugins.runeliteai.DatabaseManagerTest.GameTickData)
+  location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[149,28] cannot find symbol
+  symbol:   method insertGameTick(net.runelite.client.plugins.runeliteai.DatabaseManagerTest.GameTickData)
+  location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[153,24] cannot find symbol
+  symbol:   method flushBatches()
+  location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[INFO] 100 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for RuneLite 1.11.15-SNAPSHOT:
+[INFO] 
+[INFO] RuneLite ........................................... SUCCESS [  0.628 s]
+[INFO] Cache .............................................. SUCCESS [  0.540 s]
+[INFO] RuneLite Maven Plugin .............................. SUCCESS [  1.682 s]
+[INFO] RuneLite API ....................................... SUCCESS [  9.783 s]
+[INFO] RuneLite JShell .................................... SUCCESS [  0.027 s]
+[INFO] RuneLite Client .................................... FAILURE [ 14.924 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  27.690 s
+[INFO] Finished at: 2025-08-22T10:49:47+01:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.6.1:testCompile (default-testCompile) on project client: Compilation failure: Compilation failure: 
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[52,20] cannot find symbol
+[ERROR]   symbol:   method enableDataCollection()
+[ERROR]   location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[54,20] cannot find symbol
+[ERROR]   symbol:   method databaseUrl()
+[ERROR]   location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[58,20] cannot find symbol
+[ERROR]   symbol:   method performanceThresholdMs()
+[ERROR]   location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[59,20] cannot find symbol
+[ERROR]   symbol:   method connectionTimeout()
+[ERROR]   location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[60,20] cannot find symbol
+[ERROR]   symbol:   method maxConnections()
+[ERROR]   location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[61,20] cannot find symbol
+[ERROR]   symbol:   method enableSecurityAnalytics()
+[ERROR]   location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/TestUtils.java:[62,20] cannot find symbol
+[ERROR]   symbol:   method enableCollectionLogTracking()
+[ERROR]   location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[33,35] cannot find symbol
+[ERROR]   symbol:   method openMocks(net.runelite.client.plugins.runeliteai.PerformanceMonitorTest)
+[ERROR]   location: class org.mockito.MockitoAnnotations
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[52,56] cannot find symbol
+[ERROR]   symbol:   method getMetrics()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[72,56] cannot find symbol
+[ERROR]   symbol:   method getMetrics()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[86,27] cannot find symbol
+[ERROR]   symbol:   method setPerformanceThresholds(java.util.Map<java.lang.String,java.lang.Long>)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[91,74] cannot find symbol
+[ERROR]   symbol:   method isPerformanceCritical()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[105,56] cannot find symbol
+[ERROR]   symbol:   method getMetrics()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[113,27] cannot find symbol
+[ERROR]   symbol:   method recordMemoryUsage(long)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[115,56] cannot find symbol
+[ERROR]   symbol:   method getMetrics()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[125,27] cannot find symbol
+[ERROR]   symbol:   method recordCPUUsage(double)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[127,56] cannot find symbol
+[ERROR]   symbol:   method getMetrics()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[137,27] cannot find symbol
+[ERROR]   symbol:   method recordMemoryUsage(long)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[138,27] cannot find symbol
+[ERROR]   symbol:   method recordCPUUsage(double)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[140,42] cannot find symbol
+[ERROR]   symbol:   method calculatePerformanceScore()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[151,27] cannot find symbol
+[ERROR]   symbol:   method recordMemoryUsage(long)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[152,27] cannot find symbol
+[ERROR]   symbol:   method recordCPUUsage(double)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[154,42] cannot find symbol
+[ERROR]   symbol:   method calculatePerformanceScore()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[156,79] cannot find symbol
+[ERROR]   symbol:   method isPerformanceCritical()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[164,27] cannot find symbol
+[ERROR]   symbol:   method recordMemoryUsage(long)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[167,56] cannot find symbol
+[ERROR]   symbol:   method getMetrics()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[171,27] cannot find symbol
+[ERROR]   symbol:   method recordCPUUsage(double)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[174,37] cannot find symbol
+[ERROR]   symbol:   method getMetrics()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[188,52] cannot find symbol
+[ERROR]   symbol:   method getTimingStatistics(java.lang.String)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[214,56] cannot find symbol
+[ERROR]   symbol:   method getPerformanceHistory()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[226,31] cannot find symbol
+[ERROR]   symbol:   method recordMemoryUsage(long)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[229,56] cannot find symbol
+[ERROR]   symbol:   method detectMemoryLeak()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[236,27] cannot find symbol
+[ERROR]   symbol:   method recordGarbageCollection(long,long)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[238,56] cannot find symbol
+[ERROR]   symbol:   method getMetrics()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[246,27] cannot find symbol
+[ERROR]   symbol:   method recordThreadPoolStats(int,int,int)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[248,56] cannot find symbol
+[ERROR]   symbol:   method getMetrics()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[260,31] cannot find symbol
+[ERROR]   symbol:   method recordDatabaseLatency(long)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[263,63] cannot find symbol
+[ERROR]   symbol:   method getDatabaseLatencyStats()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[276,27] cannot find symbol
+[ERROR]   symbol:   method recordMemoryUsage(long)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[277,27] cannot find symbol
+[ERROR]   symbol:   method recordCPUUsage(double)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[279,55] cannot find symbol
+[ERROR]   symbol:   method generateAlerts()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[314,48] cannot find symbol
+[ERROR]   symbol:   method measureOptimizationEffectiveness(java.lang.String)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[326,27] cannot find symbol
+[ERROR]   symbol:   method recordMemoryUsage(long)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[327,27] cannot find symbol
+[ERROR]   symbol:   method recordCPUUsage(double)
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[329,54] cannot find symbol
+[ERROR]   symbol:   method generatePerformanceReport()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/PerformanceMonitorTest.java:[367,56] cannot find symbol
+[ERROR]   symbol:   method getMetrics()
+[ERROR]   location: variable performanceMonitor of type net.runelite.client.plugins.runeliteai.PerformanceMonitor
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[43,35] cannot find symbol
+[ERROR]   symbol:   method openMocks(net.runelite.client.plugins.runeliteai.SecurityAnalyticsManagerTest)
+[ERROR]   location: class org.mockito.MockitoAnnotations
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[66,24] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: net.runelite.api.coords.WorldPoint,long
+[ERROR]   found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[69,43] cannot find symbol
+[ERROR]   symbol:   method calculateRiskScore()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[81,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: net.runelite.api.coords.WorldPoint,long
+[ERROR]   found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[84,43] cannot find symbol
+[ERROR]   symbol:   method calculateRiskScore()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[97,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: int,int,java.lang.String,long
+[ERROR]   found:    int,int,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[100,43] cannot find symbol
+[ERROR]   symbol:   method calculateRiskScore()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[110,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: int,int,java.lang.String,long
+[ERROR]   found:    int,int,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[113,43] cannot find symbol
+[ERROR]   symbol:   method calculateRiskScore()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[127,28] cannot find symbol
+[ERROR]   symbol:   method analyzeCamera(int,int,long)
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[134,43] cannot find symbol
+[ERROR]   symbol:   method calculateRiskScore()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[144,28] cannot find symbol
+[ERROR]   symbol:   method analyzeCamera(int,int,long)
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[147,43] cannot find symbol
+[ERROR]   symbol:   method calculateRiskScore()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[154,56] method performSecurityAnalysis in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: long
+[ERROR]   found:    no arguments
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[174,41] cannot find symbol
+[ERROR]   symbol:   method calculateRiskScore()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[180,42] cannot find symbol
+[ERROR]   symbol:   method calculateRiskScore()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[199,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: net.runelite.api.coords.WorldPoint,long
+[ERROR]   found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[206,45] cannot find symbol
+[ERROR]   symbol:   method getMovementConsistency()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[220,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: int,int,java.lang.String,long
+[ERROR]   found:    int,int,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[227,42] cannot find symbol
+[ERROR]   symbol:   method getClickTimingVariance()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[241,28] cannot find symbol
+[ERROR]   symbol:   method analyzeCamera(int,int,long)
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[244,44] cannot find symbol
+[ERROR]   symbol:   method getCameraSmoothness()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[256,56] method performSecurityAnalysis in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: long
+[ERROR]   found:    no arguments
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[272,54] cannot find symbol
+[ERROR]   symbol:   method getBehavioralMetrics()
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[290,24] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: net.runelite.api.coords.WorldPoint,long
+[ERROR]   found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[296,24] method performSecurityAnalysis in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: long
+[ERROR]   found:    no arguments
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[299,53] method recordSecurityAnalysis in class net.runelite.client.plugins.runeliteai.DataCollectionManager cannot be applied to given types;
+[ERROR]   required: double,java.lang.String,int,int,long
+[ERROR]   found:    java.lang.Object
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[309,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: net.runelite.api.coords.WorldPoint,long
+[ERROR]   found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[316,24] method performSecurityAnalysis in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: long
+[ERROR]   found:    no arguments
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[334,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: net.runelite.api.coords.WorldPoint,long
+[ERROR]   found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[339,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: int,int,java.lang.String,long
+[ERROR]   found:    int,int,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[348,28] cannot find symbol
+[ERROR]   symbol:   method analyzeCamera(int,int,long)
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[363,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: net.runelite.api.coords.WorldPoint,long
+[ERROR]   found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[368,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: int,int,java.lang.String,long
+[ERROR]   found:    int,int,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[373,28] cannot find symbol
+[ERROR]   symbol:   method analyzeCamera(int,int,long)
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[385,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: net.runelite.api.coords.WorldPoint,long
+[ERROR]   found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[388,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: int,int,java.lang.String,long
+[ERROR]   found:    int,int,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[391,28] cannot find symbol
+[ERROR]   symbol:   method analyzeCamera(int,int,long)
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[403,28] method analyzeMovement in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: net.runelite.api.coords.WorldPoint,long
+[ERROR]   found:    net.runelite.api.coords.WorldPoint,net.runelite.api.coords.WorldPoint,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[406,28] method analyzeClick in class net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager cannot be applied to given types;
+[ERROR]   required: int,int,java.lang.String,long
+[ERROR]   found:    int,int,long
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/SecurityAnalyticsManagerTest.java:[414,32] cannot find symbol
+[ERROR]   symbol:   method analyzeCamera(int,int,long)
+[ERROR]   location: variable securityManager of type net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[48,35] cannot find symbol
+[ERROR]   symbol:   method openMocks(net.runelite.client.plugins.runeliteai.DatabaseManagerTest)
+[ERROR]   location: class org.mockito.MockitoAnnotations
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[51,20] cannot find symbol
+[ERROR]   symbol:   method databaseUrl()
+[ERROR]   location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[55,20] cannot find symbol
+[ERROR]   symbol:   method connectionTimeout()
+[ERROR]   location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[56,20] cannot find symbol
+[ERROR]   symbol:   method maxConnections()
+[ERROR]   location: variable config of type net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[64,27] constructor DatabaseManager in class net.runelite.client.plugins.runeliteai.DatabaseManager cannot be applied to given types;
+[ERROR]   required: no arguments
+[ERROR]   found:    net.runelite.client.plugins.runeliteai.RuneliteAIConfig
+[ERROR]   reason: actual and formal argument lists differ in length
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[80,28] cannot find symbol
+[ERROR]   symbol:   method shutdown()
+[ERROR]   location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[90,68] cannot find symbol
+[ERROR]   symbol:   method testConnection()
+[ERROR]   location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[94,74] cannot find symbol
+[ERROR]   symbol:   method isConnected()
+[ERROR]   location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[102,68] cannot find symbol
+[ERROR]   symbol:   method testConnection()
+[ERROR]   location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[106,78] cannot find symbol
+[ERROR]   symbol:   method isConnected()
+[ERROR]   location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[126,63] cannot find symbol
+[ERROR]   symbol:   method insertGameTick(net.runelite.client.plugins.runeliteai.DatabaseManagerTest.GameTickData)
+[ERROR]   location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[149,28] cannot find symbol
+[ERROR]   symbol:   method insertGameTick(net.runelite.client.plugins.runeliteai.DatabaseManagerTest.GameTickData)
+[ERROR]   location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] /D:/RuneliteAI/RunelitePluginClone/runelite-client/src/test/java/net/runelite/client/plugins/runeliteai/DatabaseManagerTest.java:[153,24] cannot find symbol
+[ERROR]   symbol:   method flushBatches()
+[ERROR]   location: variable databaseManager of type net.runelite.client.plugins.runeliteai.DatabaseManager
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :client

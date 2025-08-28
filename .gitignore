@@ -1,0 +1,51 @@
+# Build output
+target/
+build/
+out/
+*.class
+*.jar
+*.war
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Logs
+logs/
+Logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# RuneLite specific
+.runelite/
+jagexcache/
+runelite/
+
+# Include our RuneLiteAI plugin (override default plugin ignoring)
+!RunelitePluginClone/runelite-client/src/main/java/net/runelite/client/plugins/runeliteai/
+
+# Maven
+dependency-reduced-pom.xml
+
+# Credentials (keep these secure)
+*.key
+*.pem
+credentials.txt

@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 2018, Adam <Adam@sigterm.info>
+ All rights reserved.
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
+
+ 1. Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+ 2. Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ RuneliteAI Enhanced Logging Configuration
+ Organized logging structure with category-specific appenders
+-->
+<configuration scan="true">
+    <!-- Property definitions for organized logging -->
+    <property name="LOG_BASE_DIR" value="D:/RuneliteAI/Logs"/>
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"/>
+    
+    <turboFilter class="net.runelite.client.util.DeduplicationFilter"/>
+
+    <!-- Console appender -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
+        </encoder>
+    </appender>
+
+    <!-- Legacy RuneLite client log -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${user.home}/.runelite/logs/client.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>${user.home}/.runelite/logs/client_%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <!-- keep 30 days' worth of history -->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+
+        <encoder>
+            <Pattern>%d{yyyy-MM-dd HH:mm:ss zzz} [%thread] %-5level %logger{36} - %msg%n</Pattern>
+        </encoder>
+    </appender>
+
+    <!-- RuneliteAI Organized Logging Appenders -->
+    
+    <!-- Main runtime log appender -->
+    <appender name="RUNELITEAI_RUNTIME" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/runtime/runeliteai-current.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/runtime/runeliteai-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Data collection log appender -->
+    <appender name="DATA_COLLECTION" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/runtime/data-collection-current.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/runtime/data-collection-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Security analytics log appender -->
+    <appender name="SECURITY" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/security/security-analysis-current.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/security/security-analysis-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Performance monitoring log appender -->
+    <appender name="PERFORMANCE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/performance/performance-metrics-current.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/performance/performance-metrics-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Database operations log appender -->
+    <appender name="DATABASE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/database/database-operations-current.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/database/database-operations-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Startup log appender -->
+    <appender name="STARTUP" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/startup/startup-current.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/startup/startup-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Error summary appender -->
+    <appender name="ERROR_SUMMARY" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_BASE_DIR}/error-summary-current.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_BASE_DIR}/error-summary-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+    </appender>
+
+    <!-- Async appenders for performance -->
+    <appender name="ASYNC_RUNTIME" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="RUNELITEAI_RUNTIME"/>
+    </appender>
+
+    <appender name="ASYNC_DATA" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="DATA_COLLECTION"/>
+    </appender>
+
+    <!-- RuneliteAI Logger Configurations -->
+    
+    <!-- Main plugin logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.RuneliteAIPlugin" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="ASYNC_RUNTIME"/>
+        <appender-ref ref="STARTUP"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Data collection logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.DataCollectionManager" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_DATA"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Security analytics logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.SecurityAnalyticsManager" level="INFO" additivity="false">
+        <appender-ref ref="SECURITY"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Performance monitor logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.PerformanceMonitor" level="DEBUG" additivity="false">
+        <appender-ref ref="PERFORMANCE"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Database manager logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.DatabaseManager" level="INFO" additivity="false">
+        <appender-ref ref="DATABASE"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Collection log manager logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.CollectionLogManager" level="INFO" additivity="false">
+        <appender-ref ref="RUNELITEAI_RUNTIME"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Widget parsing manager logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.WidgetParsingManager" level="INFO" additivity="false">
+        <appender-ref ref="RUNELITEAI_RUNTIME"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Timer manager logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.TimerManager" level="INFO" additivity="false">
+        <appender-ref ref="RUNELITEAI_RUNTIME"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Session manager logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.SessionManager" level="INFO" additivity="false">
+        <appender-ref ref="RUNELITEAI_RUNTIME"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Quality validator logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.QualityValidator" level="INFO" additivity="false">
+        <appender-ref ref="RUNELITEAI_RUNTIME"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Behavioral analysis manager logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.BehavioralAnalysisManager" level="INFO" additivity="false">
+        <appender-ref ref="SECURITY"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Configuration manager logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.ConfigurationManager" level="INFO" additivity="false">
+        <appender-ref ref="RUNELITEAI_RUNTIME"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </root>
+
+</configuration>

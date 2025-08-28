@@ -1,0 +1,364 @@
+{
+  "metadata": {
+    "analysis_timestamp": "2025-08-26",
+    "total_data_rows": 245108,
+    "tables_analyzed": 10,
+    "summary": {
+      "high_diversity_tables": ["nearby_npcs", "inventory_items", "camera_state"],
+      "low_diversity_tables": ["mouse_state", "sessions", "player_location"],
+      "behavioral_diversity_score": 2.3
+    }
+  },
+  "behavioral_diversity_analysis": {
+    "extremely_limited_patterns": {
+      "sessions": {
+        "total_rows": 9,
+        "key_findings": {
+          "activity_type": {
+            "unique_count": 1,
+            "values": [{"value": "traveling", "frequency": 9}],
+            "diversity_score": 0.0,
+            "issue": "Only one activity type - no behavioral variety"
+          },
+          "player_name": {
+            "unique_count": 1, 
+            "values": [{"value": "R4ngethis2", "frequency": 9}],
+            "diversity_score": 0.0,
+            "issue": "Single player - no multi-user patterns"
+          },
+          "world_id": {
+            "unique_count": 7,
+            "values": [
+              {"value": 325, "frequency": 1},
+              {"value": 509, "frequency": 2}, 
+              {"value": 510, "frequency": 6}
+            ],
+            "diversity_score": 3.2,
+            "note": "Some world variation but dominated by world 510"
+          },
+          "tags": {
+            "unique_count": 1,
+            "sample_values": ["[\"swampHunter\"]"],
+            "diversity_score": 0.0,
+            "issue": "Single activity tag - confirms training data limitation"
+          }
+        }
+      },
+      "mouse_state": {
+        "total_rows": 8659,
+        "key_findings": {
+          "movement_speed": {
+            "unique_count": 1,
+            "values": [{"value": 0.0, "frequency": 8659}],
+            "diversity_score": 0.0,
+            "issue": "Zero mouse movement - completely static behavior"
+          },
+          "human_likeness_score": {
+            "unique_count": 1,
+            "values": [{"value": 1.0, "frequency": 8659}],
+            "diversity_score": 0.0,
+            "issue": "Perfect human-likeness score - unnaturally consistent"
+          },
+          "bot_detection_score": {
+            "unique_count": 1,
+            "values": [{"value": 0.0, "frequency": 8659}],
+            "diversity_score": 0.0,
+            "issue": "Zero bot detection - indicates static/AFK behavior"
+          },
+          "movement_distance": {
+            "statistics": {"min": 0.0, "max": 0.0, "avg": 0.0, "stddev": 0.0},
+            "diversity_score": 0.0,
+            "issue": "No mouse movement at all"
+          }
+        }
+      },
+      "player_location": {
+        "total_rows": 8659,
+        "key_findings": {
+          "world_x": {
+            "unique_count": 7,
+            "statistics": {"min": 3549.0, "max": 3556.0, "avg": 3553.0},
+            "diversity_score": 1.2,
+            "issue": "Tiny 7-tile X range - minimal spatial movement"
+          },
+          "world_y": {
+            "unique_count": 5,
+            "statistics": {"min": 3449.0, "max": 3453.0, "avg": 3451.0},
+            "diversity_score": 0.8,
+            "issue": "Tiny 5-tile Y range - extremely limited area"
+          },
+          "region_id": {
+            "unique_count": 1,
+            "values": [{"value": 14652, "frequency": 8659}],
+            "diversity_score": 0.0,
+            "issue": "Single region - no regional behavioral patterns"
+          },
+          "plane": {
+            "unique_count": 1,
+            "values": [{"value": 0, "frequency": 8659}],
+            "diversity_score": 0.0,
+            "issue": "Ground level only - no vertical exploration"
+          },
+          "spatial_coverage": {
+            "area_tiles": 35,
+            "total_possible": "millions",
+            "coverage_percent": 0.001,
+            "issue": "Confined to 7x5 tile area - AFK behavior confirmed"
+          }
+        }
+      }
+    },
+    "moderate_diversity_patterns": {
+      "camera_state": {
+        "total_rows": 8659,
+        "key_findings": {
+          "yaw": {
+            "unique_count": 62,
+            "statistics": {"min": 0.0, "max": 1877.0, "avg": 1216.0},
+            "diversity_score": 7.8,
+            "note": "Some camera rotation - indicates occasional attention"
+          },
+          "pitch": {
+            "unique_count": 35,
+            "statistics": {"min": 0.0, "max": 383.0, "avg": 155.0},
+            "diversity_score": 4.4,
+            "note": "Limited pitch variation - mostly horizontal viewing"
+          },
+          "zoom_level": {
+            "unique_count": 1,
+            "values": [{"value": 512, "frequency": 8659}],
+            "diversity_score": 0.0,
+            "issue": "Fixed zoom level - no zoom behavior patterns"
+          }
+        }
+      },
+      "player_vitals": {
+        "total_rows": 8659,
+        "key_findings": {
+          "current_health": {
+            "unique_count": 1,
+            "statistics": {"min": 42.0, "max": 42.0, "avg": 42.0},
+            "diversity_score": 0.0,
+            "issue": "Static health - no damage taken or healing"
+          },
+          "current_prayer": {
+            "unique_count": 1,
+            "statistics": {"min": 33.0, "max": 33.0, "avg": 33.0},
+            "diversity_score": 0.0,
+            "issue": "Static prayer - no prayer usage patterns"
+          },
+          "run_energy": {
+            "unique_count": 48,
+            "statistics": {"min": 92.0, "max": 100.0, "avg": 99.2},
+            "diversity_score": 6.1,
+            "note": "Some energy variation - indicates minimal running"
+          },
+          "combat_level": {
+            "unique_count": 1,
+            "values": [{"value": 61, "frequency": 8659}],
+            "diversity_score": 0.0,
+            "issue": "Static combat level - no progression tracking"
+          }
+        }
+      }
+    },
+    "higher_diversity_patterns": {
+      "inventory_items": {
+        "total_rows": 42497,
+        "key_findings": {
+          "item_name": {
+            "unique_count": 3,
+            "values": [
+              {"value": "Rope", "frequency": 16296},
+              {"value": "Small fishing net", "frequency": 16104}, 
+              {"value": "Swamp lizard", "frequency": 10097}
+            ],
+            "diversity_score": 1.8,
+            "issue": "Only 3 items - confirms swamp hunting activity limitation"
+          },
+          "item_id": {
+            "unique_count": 3,
+            "values": [
+              {"value": 954, "frequency": 16296},
+              {"value": 303, "frequency": 16104},
+              {"value": 10149, "frequency": 10097}
+            ],
+            "diversity_score": 1.8,
+            "note": "Matches item names - rope, net, lizard"
+          },
+          "quantity": {
+            "unique_count": 1,
+            "values": [{"value": 1, "frequency": 42497}],
+            "diversity_score": 0.0,
+            "issue": "All items quantity 1 - no stacking or quantity management"
+          },
+          "slot_id": {
+            "unique_count": 13,
+            "statistics": {"min": 0.0, "max": 27.0, "avg": 8.7},
+            "diversity_score": 4.9,
+            "note": "Uses 13 of 28 inventory slots - moderate inventory management"
+          }
+        }
+      },
+      "nearby_npcs": {
+        "total_rows": 159294,
+        "key_findings": {
+          "npc_name": {
+            "unique_count": 12,
+            "top_values": [
+              {"value": "Young tree", "frequency": 63744},
+              {"value": "Tree", "frequency": 39654},
+              {"value": "Swamp lizard", "frequency": 38880},
+              {"value": "Oak tree", "frequency": 12870},
+              {"value": "Willow tree", "frequency": 4146}
+            ],
+            "diversity_score": 4.8,
+            "note": "Dominated by trees and lizards - confirms swamp hunting location"
+          },
+          "npc_id": {
+            "unique_count": 14,
+            "diversity_score": 5.1,
+            "note": "Slightly more NPC IDs than names - some variation in tree types"
+          },
+          "combat_level": {
+            "unique_count": 7,
+            "values": [
+              {"value": 0, "frequency": 120420},
+              {"value": 1, "frequency": 38874}
+            ],
+            "diversity_score": 2.3,
+            "note": "Mostly level 0 NPCs (trees) and level 1 (lizards)"
+          },
+          "aggressive": {
+            "unique_count": 1,
+            "values": [{"value": false, "frequency": 159294}],
+            "diversity_score": 0.0,
+            "issue": "No aggressive NPCs - no combat scenarios"
+          }
+        }
+      }
+    },
+    "game_ticks_enhanced_data": {
+      "total_rows": 8659,
+      "key_findings": {
+        "enhanced_action_type": {
+          "unique_count": 3,
+          "values": [
+            {"value": "general", "frequency": 5419},
+            {"value": "idle", "frequency": 3239},
+            {"value": "combat", "frequency": 1}
+          ],
+          "diversity_score": 1.5,
+          "issue": "Only 3 action types, 1 combat action - explains overfitting"
+        },
+        "current_interface_tab": {
+          "unique_count": 1,
+          "values": [{"value": "INVENTORY", "frequency": 8659}],
+          "diversity_score": 0.0,
+          "issue": "Single interface tab - no UI interaction diversity"
+        },
+        "client_focused": {
+          "unique_count": 1,
+          "values": [{"value": true, "frequency": 8659}],
+          "diversity_score": 0.0,
+          "issue": "Always focused - no AFK detection patterns"
+        },
+        "is_interface_open": {
+          "unique_count": 1,
+          "values": [{"value": false, "frequency": 8659}],
+          "diversity_score": 0.0,
+          "issue": "No interface interactions - minimal UI usage"
+        }
+      }
+    }
+  },
+  "data_quality_insights": {
+    "critical_limitations": [
+      {
+        "issue": "Zero mouse movement across all 8,659 ticks",
+        "impact": "Cannot model mouse behavior or click patterns",
+        "severity": "critical"
+      },
+      {
+        "issue": "Only 3 unique action types with 1 combat action",
+        "impact": "Insufficient action diversity for meaningful ML training",
+        "severity": "critical"
+      },
+      {
+        "issue": "Confined to 35-tile area (7x5)",
+        "impact": "No spatial behavioral modeling possible",
+        "severity": "critical"
+      },
+      {
+        "issue": "Single activity type and player",
+        "impact": "No behavioral variation or comparison baseline",
+        "severity": "critical"
+      }
+    ],
+    "moderate_limitations": [
+      {
+        "issue": "Only 3 inventory items",
+        "impact": "Limited item interaction modeling",
+        "severity": "moderate"
+      },
+      {
+        "issue": "Static health and prayer values",
+        "impact": "No resource management behavior",
+        "severity": "moderate"
+      },
+      {
+        "issue": "12 NPC types but dominated by trees",
+        "impact": "Limited NPC interaction diversity",
+        "severity": "moderate"
+      }
+    ],
+    "positive_aspects": [
+      {
+        "aspect": "Perfect tick coverage on core tables",
+        "value": "Reliable temporal consistency for available data"
+      },
+      {
+        "aspect": "62 camera yaw positions", 
+        "value": "Some environmental awareness behavior"
+      },
+      {
+        "aspect": "13 inventory slots used",
+        "value": "Basic inventory management patterns"
+      },
+      {
+        "aspect": "159,294 NPC observations",
+        "value": "Rich environmental context data"
+      }
+    ]
+  },
+  "recommendations": {
+    "immediate_actions": [
+      "Collect data from more diverse activities (combat, trading, questing)",
+      "Enable mouse tracking to capture actual movement patterns",
+      "Collect data from multiple players for behavioral comparison",
+      "Record sessions with UI interactions and interface usage"
+    ],
+    "data_collection_priorities": [
+      "Combat scenarios with damage, healing, and prayer usage",
+      "Movement across different regions and areas",
+      "Social interactions with other players",
+      "Economic activities (trading, shopping, banking)",
+      "Skill training with progression and resource management"
+    ],
+    "training_data_requirements": [
+      "Minimum 10+ unique action types for meaningful classification",
+      "Multiple activity contexts (combat, social, economic, exploration)",
+      "Varied spatial coverage across different game regions",
+      "Dynamic resource management scenarios (health, prayer, inventory)",
+      "Diverse mouse and UI interaction patterns"
+    ]
+  },
+  "behavioral_diversity_summary": {
+    "overall_score": 2.3,
+    "max_possible_score": 100.0,
+    "category": "Severely Limited",
+    "primary_issue": "AFK/Static behavior with minimal interaction diversity",
+    "training_viability": "Poor - Insufficient diversity for meaningful AI training",
+    "recommendation": "Collect new data with active, diverse gameplay scenarios"
+  }
+}
