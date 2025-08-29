@@ -28,6 +28,54 @@ import static net.runelite.client.plugins.runeliteai.DataStructures.*;
 import static net.runelite.client.plugins.runeliteai.AnalysisResults.*;
 
 /**
+ * Simple wrapper class to store hitsplats with timestamps
+ */
+class TimestampedHitsplat {
+    private final HitsplatApplied hitsplat;
+    private final long timestamp;
+    
+    public TimestampedHitsplat(HitsplatApplied hitsplat, long timestamp) {
+        this.hitsplat = hitsplat;
+        this.timestamp = timestamp;
+    }
+    
+    public HitsplatApplied getHitsplat() { return hitsplat; }
+    public long getTimestamp() { return timestamp; }
+}
+
+/**
+ * Simple wrapper class to store interaction changes with timestamps
+ */
+class TimestampedInteractionChanged {
+    private final InteractingChanged interaction;
+    private final long timestamp;
+    
+    public TimestampedInteractionChanged(InteractingChanged interaction, long timestamp) {
+        this.interaction = interaction;
+        this.timestamp = timestamp;
+    }
+    
+    public InteractingChanged getInteraction() { return interaction; }
+    public long getTimestamp() { return timestamp; }
+}
+
+/**
+ * Simple wrapper class to store menu option clicks with timestamps
+ */
+class TimestampedMenuOptionClicked {
+    private final MenuOptionClicked menuClick;
+    private final long timestamp;
+    
+    public TimestampedMenuOptionClicked(MenuOptionClicked menuClick, long timestamp) {
+        this.menuClick = menuClick;
+        this.timestamp = timestamp;
+    }
+    
+    public MenuOptionClicked getMenuClick() { return menuClick; }
+    public long getTimestamp() { return timestamp; }
+}
+
+/**
  * Core data collection engine for RuneLiteAI Plugin
  * 
  * Responsible for comprehensive data capture across 680+ data points per tick:
@@ -71,9 +119,10 @@ public class DataCollectionManager
     private final Queue<ChatMessage> recentChatMessages = new ConcurrentLinkedQueue<>();
     private final Queue<ItemContainerChanged> recentItemChanges = new ConcurrentLinkedQueue<>();
     private final Queue<StatChanged> recentStatChanges = new ConcurrentLinkedQueue<>();
-    private final Queue<HitsplatApplied> recentHitsplats = new ConcurrentLinkedQueue<>();
+    private final Queue<TimestampedHitsplat> recentHitsplats = new ConcurrentLinkedQueue<>();
     private final Queue<AnimationChanged> recentAnimationChanges = new ConcurrentLinkedQueue<>();
-    private final Queue<InteractingChanged> recentInteractionChanges = new ConcurrentLinkedQueue<>();
+    private final Queue<TimestampedInteractionChanged> recentInteractionChanges = new ConcurrentLinkedQueue<>();
+    private final Queue<TimestampedMenuOptionClicked> recentMenuInteractions = new ConcurrentLinkedQueue<>();
     private final Queue<ProjectileMoved> recentProjectiles = new ConcurrentLinkedQueue<>();
     
     // Ground object tracking with ownership timers
@@ -356,7 +405,7 @@ public class DataCollectionManager
             .maxPrayer(client.getRealSkillLevel(Skill.PRAYER))
             .energy(client.getEnergy())
             .weight(client.getWeight())
-            .specialAttackPercent(client.getVarpValue(VarPlayer.SPECIAL_ATTACK_PERCENT))
+            .specialAttackPercent(client.getVarpValue(VarPlayer.SPECIAL_ATTACK_PERCENT) / 10)
             .poisoned(poisonValue > 0)
             .diseased(diseaseValue > 0)
             .venomed(poisonValue < 0)
@@ -387,6 +436,8 @@ public class DataCollectionManager
             .regionX(worldLocation.getRegionX())
             .regionY(worldLocation.getRegionY())
             .regionId(worldLocation.getRegionID())
+            .chunkX(worldLocation.getX() >> 6)
+            .chunkY(worldLocation.getY() >> 6)
             .locationName(getLocationName(worldLocation))
             .areaType(getAreaType(worldLocation))
             .inWilderness(isInWilderness(worldLocation))
@@ -1175,20 +1226,43 @@ public class DataCollectionManager
             .map(this::collectNPCData)
             .collect(Collectors.toList());
         
+        // Count combat NPCs
         int combatNPCs = (int) npcDataList.stream()
             .filter(n -> n.getCombatLevel() != null && n.getCombatLevel() > 0)
             .count();
         
+        // Count aggressive NPCs (NPCs that can attack players)
+        int aggressiveNPCs = (int) npcs.stream()
+            .filter(Objects::nonNull)
+            .filter(npc -> isAggressiveNPC(npc))
+            .count();
+        
+        // Calculate average combat level
         double avgCombatLevel = npcDataList.stream()
             .filter(n -> n.getCombatLevel() != null && n.getCombatLevel() > 0)
             .mapToInt(NPCData::getCombatLevel)
             .average()
             .orElse(0.0);
         
+        // Find most common NPC type
+        String mostCommonNPCType = npcDataList.stream()
+            .filter(n -> n.getNpcName() != null && !n.getNpcName().isEmpty())
+            .collect(Collectors.groupingBy(NPCData::getNpcName, Collectors.counting()))
+            .entrySet().stream()
+            .max(Map.Entry.comparingByValue())
+            .map(Map.Entry::getKey)
+            .orElse("unknown");
+        
+        // DEBUG: Log NPC data collection
+        log.debug("[NPC-DEBUG] Count: {}, Combat: {}, Aggressive: {}, Common: {}", 
+            npcDataList.size(), combatNPCs, aggressiveNPCs, mostCommonNPCType);
+        
         return NearbyNPCsData.builder()
             .npcs(npcDataList)
             .npcCount(npcDataList.size())
             .combatNPCCount(combatNPCs)
+            .aggressiveNPCCount(aggressiveNPCs) // ADD THIS: Aggressive NPC count
+            .mostCommonNPCType(mostCommonNPCType) // ADD THIS: Most common NPC type
             .averageNPCCombatLevel((int) avgCombatLevel)
             .build();
     }
@@ -1888,6 +1962,9 @@ public class DataCollectionManager
             MenuEntry menuEntry = event.getMenuEntry();
             if (menuEntry == null) return;
             
+            // FIRST: Record this as a menu interaction for interaction data collection
+            recordMenuInteraction(event);
+            
             // Determine click type based on context
             String clickType = determineClickType(event);
             
@@ -2503,7 +2580,7 @@ public class DataCollectionManager
                 .targetCombatLevel(targetCombatLevel)
                 .currentAnimation(currentAnimation)
                 .lastCombatTick(System.currentTimeMillis())
-                .specialAttackPercent(client.getVarpValue(VarPlayer.SPECIAL_ATTACK_PERCENT))
+                .specialAttackPercent(client.getVarpValue(VarPlayer.SPECIAL_ATTACK_PERCENT) / 10)
                 .weaponType(getWeaponType())
                 .attackStyle(getAttackStyle())
                 .build();
@@ -2520,27 +2597,53 @@ public class DataCollectionManager
     {
         try {
             List<HitsplatApplied> recentHitsplatList = new ArrayList<>();
+            List<Integer> recentHits = new ArrayList<>();
             int totalDamage = 0;
             int maxHit = 0;
             int hitCount = 0;
+            String lastHitType = null;
+            Long lastHitTime = null;
             
-            // Collect recent hitsplats from the queue
-            for (HitsplatApplied hitsplat : recentHitsplats) {
-                if (hitsplat != null && hitsplat.getHitsplat() != null) {
-                    recentHitsplatList.add(hitsplat);
-                    int damage = hitsplat.getHitsplat().getAmount();
-                    totalDamage += damage;
-                    maxHit = Math.max(maxHit, damage);
-                    hitCount++;
+            // Only consider hitsplats from the last 10 seconds to avoid stale data
+            long currentTime = System.currentTimeMillis();
+            long timeThreshold = currentTime - 10000; // 10 seconds
+            
+            // Collect recent hitsplats from the queue (time-filtered)
+            for (TimestampedHitsplat timestampedHitsplat : recentHitsplats) {
+                if (timestampedHitsplat != null && timestampedHitsplat.getHitsplat() != null && 
+                    timestampedHitsplat.getHitsplat().getHitsplat() != null) {
+                    
+                    // Only include hitsplats from the last 10 seconds
+                    if (timestampedHitsplat.getTimestamp() >= timeThreshold) {
+                        HitsplatApplied hitsplat = timestampedHitsplat.getHitsplat();
+                        recentHitsplatList.add(hitsplat);
+                        int damage = hitsplat.getHitsplat().getAmount();
+                        recentHits.add(damage);
+                        totalDamage += damage;
+                        maxHit = Math.max(maxHit, damage);
+                        hitCount++;
+                        
+                        // Track last hit details
+                        lastHitType = getHitsplatTypeName(hitsplat.getHitsplat().getHitsplatType());
+                        lastHitTime = timestampedHitsplat.getTimestamp();
+                    }
                 }
             }
             
+            // Calculate average hit if we have hits
+            Integer averageHit = hitCount > 0 ? totalDamage / hitCount : null;
+            Double averageDamage = hitCount > 0 ? (double) totalDamage / hitCount : null;
+            
             return HitsplatData.builder()
                 .recentHitsplats(recentHitsplatList)
+                .recentHits(recentHits) // ADD THIS: Include the recentHits for JSONB
                 .totalRecentDamage(totalDamage)
                 .maxRecentHit(maxHit)
                 .hitCount(hitCount)
-                // averageDamage field not available in HitsplatData
+                .lastHitType(lastHitType) // ADD THIS: Include last hit type
+                .lastHitTime(lastHitTime) // ADD THIS: Include last hit time
+                .averageHit(averageHit) // ADD THIS: Calculate average hit
+                .averageDamage(averageDamage) // ADD THIS: Calculate average damage
                 .build();
         } catch (Exception e) {
             log.warn("Error collecting hitsplat data", e);
@@ -2563,18 +2666,40 @@ public class DataCollectionManager
             // Convert AnimationChanged events to Integer list of animation IDs
             List<Integer> recentAnimationIds = recentAnimationList.stream()
                 .map(event -> event.getActor().getAnimation())
+                .filter(animId -> animId != -1) // Filter out idle animations from recent list
                 .collect(Collectors.toList());
+                
             int currentAnimation = localPlayer.getAnimation();
             int poseAnimation = localPlayer.getPoseAnimation();
             String animationType = getAnimationType(currentAnimation);
+            
+            // Find the most recent non-idle animation for lastAnimation
+            String lastAnimation = null;
+            Long animationStartTime = null;
+            Integer animationDuration = null;
+            
+            if (!recentAnimationIds.isEmpty()) {
+                Integer lastAnimId = recentAnimationIds.get(recentAnimationIds.size() - 1);
+                lastAnimation = getAnimationType(lastAnimId);
+                animationStartTime = System.currentTimeMillis(); // Approximate since we don't track exact start times
+                animationDuration = getAnimationDuration(lastAnimId); // We'll need to implement this
+            }
+            
+            // DEBUG: Log animation data collection
+            if (currentAnimation != -1) {
+                log.debug("[ANIMATION-DEBUG] Current: {} (type: {}), Pose: {}, Recent: {}", 
+                    currentAnimation, animationType, poseAnimation, recentAnimationIds.size());
+            }
             
             return AnimationData.builder()
                 .currentAnimation(currentAnimation)
                 .poseAnimation(poseAnimation)
                 .animationType(animationType)
                 .recentAnimations(recentAnimationIds)
-                .animationChangeCount(recentAnimationList.size())
-                // .isAnimating(currentAnimation != -1) // Field not available in DataStructures
+                .animationChangeCount(recentAnimationList.size()) // Total changes including idle
+                .lastAnimation(lastAnimation) // ADD THIS: Last non-idle animation type
+                .animationStartTime(animationStartTime) // ADD THIS: Approximate start time
+                .animationDuration(animationDuration) // ADD THIS: Animation duration estimate
                 .build();
         } catch (Exception e) {
             log.warn("Error collecting animation data", e);
@@ -2593,18 +2718,147 @@ public class DataCollectionManager
                 return InteractionData.builder().build();
             }
             
-            List<InteractingChanged> recentInteractionList = new ArrayList<>(recentInteractionChanges);
+            // Only consider interactions from the last 10 seconds to avoid stale data (same as hitsplats)
+            long currentTime = System.currentTimeMillis();
+            long timeThreshold = currentTime - 10000; // 10 seconds
+            
+            // Collect recent interaction changes (time-filtered)
+            List<InteractingChanged> recentActorInteractions = new ArrayList<>();
+            for (TimestampedInteractionChanged timestampedInteraction : recentInteractionChanges) {
+                if (timestampedInteraction != null && timestampedInteraction.getInteraction() != null &&
+                    timestampedInteraction.getTimestamp() >= timeThreshold) {
+                    recentActorInteractions.add(timestampedInteraction.getInteraction());
+                }
+            }
+            
+            // Collect recent menu interactions (time-filtered)
+            List<MenuOptionClicked> recentMenuClicks = new ArrayList<>();
+            for (TimestampedMenuOptionClicked timestampedMenuClick : recentMenuInteractions) {
+                if (timestampedMenuClick != null && timestampedMenuClick.getMenuClick() != null &&
+                    timestampedMenuClick.getTimestamp() >= timeThreshold) {
+                    recentMenuClicks.add(timestampedMenuClick.getMenuClick());
+                }
+            }
+            
+            // Calculate total interaction count (only recent interactions)
+            int totalInteractionCount = recentActorInteractions.size() + recentMenuClicks.size();
+            
+            // Get current target info
             Actor currentTarget = localPlayer.getInteracting();
             String targetName = currentTarget != null ? currentTarget.getName() : null;
             String interactionType = getInteractionType(currentTarget);
             
+            // Get last interaction details from both sources (time-filtered)
+            String lastInteractionType = null;
+            String lastInteractionTarget = null;
+            Long lastInteractionTime = null;
+            String mostCommonInteraction = null;
+            
+            // Find the most recent interaction from either source
+            TimestampedInteractionChanged lastActorInteraction = null;
+            for (TimestampedInteractionChanged timestampedInteraction : recentInteractionChanges) {
+                if (timestampedInteraction != null && timestampedInteraction.getTimestamp() >= timeThreshold) {
+                    if (lastActorInteraction == null || timestampedInteraction.getTimestamp() > lastActorInteraction.getTimestamp()) {
+                        lastActorInteraction = timestampedInteraction;
+                    }
+                }
+            }
+            
+            TimestampedMenuOptionClicked lastMenuInteraction = null;
+            for (TimestampedMenuOptionClicked timestampedMenuClick : recentMenuInteractions) {
+                if (timestampedMenuClick != null && timestampedMenuClick.getTimestamp() >= timeThreshold) {
+                    if (lastMenuInteraction == null || timestampedMenuClick.getTimestamp() > lastMenuInteraction.getTimestamp()) {
+                        lastMenuInteraction = timestampedMenuClick;
+                    }
+                }
+            }
+            
+            // Determine which is more recent - actor or menu interaction
+            if (lastMenuInteraction != null && (lastActorInteraction == null || 
+                lastMenuInteraction.getTimestamp() > lastActorInteraction.getTimestamp())) {
+                // Menu interaction is more recent
+                lastInteractionType = "object";
+                lastInteractionTarget = resolveTargetName(lastMenuInteraction.getMenuClick().getMenuEntry(), "object");
+                lastInteractionTime = lastMenuInteraction.getTimestamp();
+            } else if (lastActorInteraction != null) {
+                // Actor interaction is more recent
+                lastInteractionType = "combat";
+                lastInteractionTarget = targetName;
+                lastInteractionTime = lastActorInteraction.getTimestamp();
+            }
+            
+            // Find most common interaction from recent menu clicks (time-filtered)
+            if (!recentMenuClicks.isEmpty()) {
+                Map<String, Long> actionCounts = recentMenuClicks.stream()
+                    .filter(click -> click.getMenuEntry() != null && click.getMenuEntry().getOption() != null)
+                    .collect(Collectors.groupingBy(
+                        click -> click.getMenuEntry().getOption(), 
+                        Collectors.counting()));
+                        
+                mostCommonInteraction = actionCounts.entrySet().stream()
+                    .max(Map.Entry.comparingByValue())
+                    .map(Map.Entry::getKey)
+                    .orElse("unknown");
+            }
+            
+            // Calculate average interaction interval from time-filtered data
+            Double averageInteractionInterval = null;
+            if (totalInteractionCount > 1) {
+                // Collect all timestamps from both sources (time-filtered)
+                List<Long> allTimestamps = new ArrayList<>();
+                
+                // Add actor interaction timestamps
+                for (TimestampedInteractionChanged timestampedInteraction : recentInteractionChanges) {
+                    if (timestampedInteraction != null && timestampedInteraction.getTimestamp() >= timeThreshold) {
+                        allTimestamps.add(timestampedInteraction.getTimestamp());
+                    }
+                }
+                
+                // Add menu interaction timestamps
+                for (TimestampedMenuOptionClicked timestampedMenuClick : recentMenuInteractions) {
+                    if (timestampedMenuClick != null && timestampedMenuClick.getTimestamp() >= timeThreshold) {
+                        allTimestamps.add(timestampedMenuClick.getTimestamp());
+                    }
+                }
+                
+                // Sort timestamps and calculate intervals
+                if (allTimestamps.size() > 1) {
+                    Collections.sort(allTimestamps);
+                    long totalInterval = 0;
+                    int intervalCount = 0;
+                    
+                    for (int i = 1; i < allTimestamps.size(); i++) {
+                        long interval = allTimestamps.get(i) - allTimestamps.get(i - 1);
+                        // Only count reasonable intervals (less than 30 seconds between interactions)
+                        if (interval < 30000) {
+                            totalInterval += interval;
+                            intervalCount++;
+                        }
+                    }
+                    
+                    if (intervalCount > 0) {
+                        averageInteractionInterval = (double) totalInterval / intervalCount;
+                    }
+                }
+            }
+            
+            // DEBUG: Log interaction data collection with time filtering info
+            if (totalInteractionCount > 0) {
+                log.debug("[INTERACTION-DEBUG] Time-filtered ({}s window): Total: {}, Menu: {}, Actor: {}, Type: {}, Target: {}, AvgInterval: {}ms", 
+                    (currentTime - timeThreshold) / 1000, totalInteractionCount, recentMenuClicks.size(), 
+                    recentActorInteractions.size(), lastInteractionType, lastInteractionTarget, averageInteractionInterval);
+            }
+            
             return InteractionData.builder()
                 .currentTarget(targetName)
                 .interactionType(interactionType)
-                .recentInteractions(recentInteractionList)
-                // .interactionChangeCount(recentInteractionList.size()) // Field not available
-                // .isInteracting(currentTarget != null) // Field not available
-                .lastInteractionTime(System.currentTimeMillis())
+                .recentInteractions(recentActorInteractions) // Now time-filtered
+                .interactionCount(totalInteractionCount) // Now time-filtered count
+                .lastInteractionType(lastInteractionType) // From most recent interaction
+                .lastInteractionTarget(lastInteractionTarget) // From most recent interaction
+                .lastInteractionTime(lastInteractionTime) // Accurate timestamp from wrapper
+                .mostCommonInteraction(mostCommonInteraction) // From time-filtered data
+                .averageInteractionInterval(averageInteractionInterval) // Now properly calculated from time-filtered data
                 .build();
         } catch (Exception e) {
             log.warn("Error collecting interaction data", e);
@@ -2655,6 +2909,58 @@ public class DataCollectionManager
     }
     
     /**
+     * Determine if an NPC is aggressive (can attack players)
+     */
+    private boolean isAggressiveNPC(NPC npc)
+    {
+        if (npc == null) return false;
+        
+        // Simple aggressive NPC detection based on combat level
+        // Aggressive NPCs typically have combat levels > 0
+        int combatLevel = npc.getCombatLevel();
+        if (combatLevel <= 0) return false;
+        
+        // Additional checks based on NPC name patterns
+        String name = npc.getName();
+        if (name == null) return false;
+        
+        // Common aggressive NPC types
+        String lowerName = name.toLowerCase();
+        if (lowerName.contains("guard") || lowerName.contains("wizard") || 
+            lowerName.contains("warrior") || lowerName.contains("goblin") ||
+            lowerName.contains("skeleton") || lowerName.contains("spider") ||
+            lowerName.contains("rat") || lowerName.contains("barbarian")) {
+            return true;
+        }
+        
+        // Default: NPCs with combat level > 20 are likely aggressive
+        return combatLevel > 20;
+    }
+    
+    /**
+     * Get estimated duration for animation in milliseconds
+     */
+    private Integer getAnimationDuration(int animationId)
+    {
+        if (animationId == -1) return null;
+        
+        // Estimate animation durations based on type (in milliseconds)
+        String type = getAnimationType(animationId);
+        switch (type) {
+            case "attack":
+                return 1800; // ~1.8 seconds for most attack animations
+            case "magic":
+                return 2400; // ~2.4 seconds for spell casting
+            case "skilling":
+                return 3600; // ~3.6 seconds for skill animations
+            case "movement":
+                return 600;  // ~0.6 seconds for movement
+            default:
+                return 1200; // ~1.2 seconds default
+        }
+    }
+    
+    /**
      * Helper method to get interaction type
      */
     private String getInteractionType(Actor target)
@@ -2663,6 +2969,50 @@ public class DataCollectionManager
         if (target instanceof Player) return "player";
         if (target instanceof NPC) return "npc";
         return "unknown";
+    }
+    
+    /**
+     * Helper method to convert hitsplat type int to string name
+     */
+    private String getHitsplatTypeName(int hitsplatType)
+    {
+        switch (hitsplatType) {
+            case 12: return "BLOCK_ME";
+            case 13: return "BLOCK_OTHER";
+            case 16: return "DAMAGE_ME";
+            case 17: return "DAMAGE_OTHER";
+            case 65: return "POISON";
+            case 4: return "DISEASE";
+            case 3: return "DISEASE_BLOCKED";
+            case 5: return "VENOM";
+            case 6: return "HEAL";
+            case 11: return "CYAN_UP";
+            case 15: return "CYAN_DOWN";
+            case 18: return "DAMAGE_ME_CYAN";
+            case 19: return "DAMAGE_OTHER_CYAN";
+            case 20: return "DAMAGE_ME_ORANGE";
+            case 21: return "DAMAGE_OTHER_ORANGE";
+            case 22: return "DAMAGE_ME_YELLOW";
+            case 23: return "DAMAGE_OTHER_YELLOW";
+            case 24: return "DAMAGE_ME_WHITE";
+            case 25: return "DAMAGE_OTHER_WHITE";
+            case 43: return "DAMAGE_MAX_ME";
+            case 44: return "DAMAGE_MAX_ME_CYAN";
+            case 45: return "DAMAGE_MAX_ME_ORANGE";
+            case 46: return "DAMAGE_MAX_ME_YELLOW";
+            case 47: return "DAMAGE_MAX_ME_WHITE";
+            case 53: return "DAMAGE_ME_POISE";
+            case 54: return "DAMAGE_OTHER_POISE";
+            case 55: return "DAMAGE_MAX_ME_POISE";
+            case 0: return "CORRUPTION";
+            case 60: return "PRAYER_DRAIN";
+            case 67: return "BLEED";
+            case 71: return "SANITY_DRAIN";
+            case 72: return "SANITY_RESTORE";
+            case 73: return "DOOM";
+            case 74: return "BURN";
+            default: return "UNKNOWN_" + hitsplatType;
+        }
     }
     
     /**
@@ -4385,9 +4735,9 @@ public class DataCollectionManager
     
     public void recordHitsplat(HitsplatApplied event) {
         if (event != null && event.getActor() != null && event.getHitsplat() != null) {
-            recentHitsplats.offer(event);
-            // Keep only last configured number of hitsplats
-            while (recentHitsplats.size() > RuneliteAIConstants.MAX_HITSPLAT_HISTORY) {
+            recentHitsplats.offer(new TimestampedHitsplat(event, System.currentTimeMillis()));
+            // Keep only last 50 hitsplats to prevent excessive memory usage
+            while (recentHitsplats.size() > 50) {
                 recentHitsplats.poll();
             }
             
@@ -4422,9 +4772,9 @@ public class DataCollectionManager
     
     public void recordInteractionChange(InteractingChanged event) {
         if (event != null && event.getSource() != null) {
-            recentInteractionChanges.offer(event);
-            // Keep only last configured number of interaction changes
-            while (recentInteractionChanges.size() > RuneliteAIConstants.MAX_INTERACTION_CHANGE_HISTORY) {
+            recentInteractionChanges.offer(new TimestampedInteractionChanged(event, System.currentTimeMillis()));
+            // Keep only last 50 interaction changes to prevent excessive memory usage (similar to hitsplats)
+            while (recentInteractionChanges.size() > 50) {
                 recentInteractionChanges.poll();
             }
             
@@ -4435,6 +4785,24 @@ public class DataCollectionManager
             }
             
             log.debug("Recorded interaction change: {} now targeting {}", sourceName, targetName);
+        }
+    }
+    
+    /**
+     * Record menu interactions for object/item interactions
+     */
+    public void recordMenuInteraction(MenuOptionClicked event) {
+        if (event != null && event.getMenuEntry() != null) {
+            recentMenuInteractions.offer(new TimestampedMenuOptionClicked(event, System.currentTimeMillis()));
+            // Keep only last 50 menu interactions to prevent excessive memory usage (similar to hitsplats)
+            while (recentMenuInteractions.size() > 50) {
+                recentMenuInteractions.poll();
+            }
+            
+            String menuOption = event.getMenuEntry().getOption();
+            String menuTarget = event.getMenuEntry().getTarget();
+            
+            log.debug("[MENU-INTERACTION] Recorded: {} -> {}", menuOption, menuTarget);
         }
     }
     

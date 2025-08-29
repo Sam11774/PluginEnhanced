@@ -88,6 +88,8 @@ public class DataStructures
         private Integer regionX;
         private Integer regionY;
         private Integer regionId;
+        private Integer chunkX;
+        private Integer chunkY;
         private String locationName;
         private String areaType;
         private Boolean inWilderness;
@@ -95,7 +97,7 @@ public class DataStructures
         private Boolean inPvp;
         private Boolean inMultiCombat;
         
-        public int getDataPointCount() { return 12; }
+        public int getDataPointCount() { return 14; }
         public long getEstimatedSize() { return 64 + (16 * 8) + (8 * 3) + 
             (locationName != null ? locationName.length() * 2 : 0) +
             (areaType != null ? areaType.length() * 2 : 0); }

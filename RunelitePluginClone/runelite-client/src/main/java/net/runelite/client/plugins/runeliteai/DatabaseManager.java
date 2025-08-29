@@ -418,12 +418,18 @@ public class DatabaseManager
             // Batch insert to other tables using the generated tick_ids
             insertPlayerDataBatch(conn, batch, tickIds);
             insertPlayerLocationBatch(conn, batch, tickIds);
+            insertPlayerStatsBatch(conn, batch, tickIds);
             insertPlayerEquipmentBatch(conn, batch, tickIds);
             insertPlayerInventoryBatch(conn, batch, tickIds);
             insertPlayerPrayersBatch(conn, batch, tickIds);
             insertPlayerSpellsBatch(conn, batch, tickIds);
             insertWorldDataBatch(conn, batch, tickIds);
             insertCombatDataBatch(conn, batch, tickIds);
+            insertHitsplatsDataBatch(conn, batch, tickIds);
+            insertAnimationsDataBatch(conn, batch, tickIds);
+            insertInteractionsDataBatch(conn, batch, tickIds);
+            insertNearbyPlayersDataBatch(conn, batch, tickIds);
+            insertNearbyNPCsDataBatch(conn, batch, tickIds);
             insertInputDataBatch(conn, batch, tickIds);
             insertClickContextBatch(conn, batch, tickIds);
             insertKeyPressDataBatch(conn, batch, tickIds);
@@ -605,8 +611,8 @@ public class DatabaseManager
                     stmt.setObject(6, tickData.getPlayerLocation().getWorldY());
                     stmt.setObject(7, tickData.getPlayerLocation().getPlane());
                     stmt.setObject(8, tickData.getPlayerLocation().getRegionId());
-                    stmt.setNull(9, Types.INTEGER); // chunk_x - not available in PlayerLocation
-                    stmt.setNull(10, Types.INTEGER); // chunk_y - not available in PlayerLocation
+                    stmt.setObject(9, tickData.getPlayerLocation().getChunkX()); // chunk_x
+                    stmt.setObject(10, tickData.getPlayerLocation().getChunkY()); // chunk_y
                     stmt.setNull(11, Types.INTEGER); // local_x - not available in PlayerLocation
                     stmt.setNull(12, Types.INTEGER); // local_y - not available in PlayerLocation
                     stmt.setString(13, tickData.getPlayerLocation().getLocationName()); // area_name
@@ -637,6 +643,145 @@ public class DatabaseManager
             
             int[] results = stmt.executeBatch();
             log.debug("[DATABASE] Player location batch insert: {} records", results.length);
+        }
+    }
+    
+    /**
+     * Insert player stats batch
+     */
+    private void insertPlayerStatsBatch(Connection conn, List<TickDataCollection> batch, List<Long> tickIds) throws SQLException
+    {
+        String insertSQL = 
+            "INSERT INTO player_stats (session_id, tick_id, tick_number, timestamp, " +
+            // Current skill levels (23 skills)
+            "attack_level, defence_level, strength_level, hitpoints_level, ranged_level, prayer_level, magic_level, " +
+            "cooking_level, woodcutting_level, fletching_level, fishing_level, firemaking_level, crafting_level, " +
+            "smithing_level, mining_level, herblore_level, agility_level, thieving_level, slayer_level, " +
+            "farming_level, runecraft_level, hunter_level, construction_level, " +
+            // Real skill levels (23 skills)
+            "attack_real_level, defence_real_level, strength_real_level, hitpoints_real_level, ranged_real_level, prayer_real_level, magic_real_level, " +
+            "cooking_real_level, woodcutting_real_level, fletching_real_level, fishing_real_level, firemaking_real_level, crafting_real_level, " +
+            "smithing_real_level, mining_real_level, herblore_real_level, agility_real_level, thieving_real_level, slayer_real_level, " +
+            "farming_real_level, runecraft_real_level, hunter_real_level, construction_real_level, " +
+            // Experience points (23 skills)
+            "attack_xp, defence_xp, strength_xp, hitpoints_xp, ranged_xp, prayer_xp, magic_xp, " +
+            "cooking_xp, woodcutting_xp, fletching_xp, fishing_xp, firemaking_xp, crafting_xp, " +
+            "smithing_xp, mining_xp, herblore_xp, agility_xp, thieving_xp, slayer_xp, " +
+            "farming_xp, runecraft_xp, hunter_xp, construction_xp, " +
+            // Computed totals
+            "total_level, total_experience, combat_level) " +
+            "VALUES (?, ?, ?, ?, " +
+            // 23 current levels
+            "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+            // 23 real levels
+            "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+            // 23 experience values
+            "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, " +
+            // 3 totals
+            "?, ?, ?)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
+                
+                if (tickData.getPlayerStats() != null && tickId != null) {
+                    DataStructures.PlayerStats stats = tickData.getPlayerStats();
+                    
+                    // Basic parameters
+                    stmt.setObject(1, tickData.getSessionId());
+                    stmt.setLong(2, tickId);
+                    stmt.setObject(3, tickData.getTickNumber());
+                    stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
+                    
+                    int paramIndex = 5;
+                    
+                    // Current levels (23 skills)
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("attack") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("defence") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("strength") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("hitpoints") : 10);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("ranged") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("prayer") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("magic") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("cooking") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("woodcutting") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("fletching") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("fishing") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("firemaking") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("crafting") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("smithing") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("mining") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("herblore") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("agility") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("thieving") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("slayer") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("farming") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("runecraft") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("hunter") : 1);
+                    stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? stats.getCurrentLevels().get("construction") : 1);
+                    
+                    // Real levels (23 skills)
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("attack") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("defence") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("strength") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("hitpoints") : 10);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("ranged") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("prayer") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("magic") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("cooking") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("woodcutting") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("fletching") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("fishing") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("firemaking") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("crafting") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("smithing") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("mining") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("herblore") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("agility") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("thieving") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("slayer") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("farming") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("runecraft") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("hunter") : 1);
+                    stmt.setObject(paramIndex++, stats.getRealLevels() != null ? stats.getRealLevels().get("construction") : 1);
+                    
+                    // Experience points (23 skills)
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("attack") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("defence") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("strength") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("hitpoints") : 1154);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("ranged") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("prayer") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("magic") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("cooking") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("woodcutting") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("fletching") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("fishing") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("firemaking") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("crafting") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("smithing") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("mining") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("herblore") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("agility") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("thieving") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("slayer") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("farming") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("runecraft") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("hunter") : 0);
+                    stmt.setObject(paramIndex++, stats.getExperience() != null ? stats.getExperience().get("construction") : 0);
+                    
+                    // Computed totals
+                    stmt.setObject(paramIndex++, stats.getTotalLevel());
+                    stmt.setObject(paramIndex++, stats.getTotalExperience());
+                    stmt.setObject(paramIndex, stats.getCombatLevel());
+                    
+                    stmt.addBatch();
+                }
+            }
+            
+            int[] results = stmt.executeBatch();
+            log.debug("[DATABASE] Player stats batch insert: {} records", results.length);
         }
     }
     
@@ -1038,6 +1183,417 @@ public class DatabaseManager
             }
             
             stmt.executeBatch();
+        }
+    }
+    
+    /**
+     * Insert hitsplats data batch - HIGH Priority Gap Resolution
+     */
+    private void insertHitsplatsDataBatch(Connection conn, List<TickDataCollection> batch, List<Long> tickIds) throws SQLException
+    {
+        String insertSQL = 
+            "INSERT INTO hitsplats_data (session_id, tick_id, tick_number, timestamp, " +
+            "total_recent_damage, max_recent_hit, hit_count, average_hit, average_damage, " +
+            "last_hit_type, last_hit_time, recent_hits, recent_hitsplats) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
+                
+                if (tickData.getHitsplatData() != null && tickId != null) {
+                    DataStructures.HitsplatData hitsplats = tickData.getHitsplatData();
+                    
+                    stmt.setObject(1, tickData.getSessionId());
+                    stmt.setLong(2, tickId);
+                    stmt.setObject(3, tickData.getTickNumber());
+                    stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
+                    stmt.setObject(5, hitsplats.getTotalRecentDamage());
+                    stmt.setObject(6, hitsplats.getMaxRecentHit());
+                    stmt.setObject(7, hitsplats.getHitCount());
+                    stmt.setObject(8, hitsplats.getAverageHit());
+                    stmt.setObject(9, hitsplats.getAverageDamage());
+                    stmt.setString(10, hitsplats.getLastHitType());
+                    stmt.setObject(11, hitsplats.getLastHitTime());
+                    
+                    // Convert lists to JSONB
+                    stmt.setString(12, hitsplats.getRecentHits() != null ? 
+                        convertToJson(hitsplats.getRecentHits()) : "[]");
+                    stmt.setString(13, hitsplats.getRecentHitsplats() != null ? 
+                        convertHitsplatsToJson(hitsplats.getRecentHitsplats()) : "[]");
+                    
+                    stmt.addBatch();
+                }
+            }
+            
+            int[] results = stmt.executeBatch();
+            log.debug("[DATABASE] Hitsplats data batch insert: {} records", results.length);
+        }
+    }
+    
+    /**
+     * Insert animations data batch - HIGH Priority Gap Resolution
+     */
+    private void insertAnimationsDataBatch(Connection conn, List<TickDataCollection> batch, List<Long> tickIds) throws SQLException
+    {
+        String insertSQL = 
+            "INSERT INTO animations_data (session_id, tick_id, tick_number, timestamp, " +
+            "current_animation, animation_type, animation_duration, animation_start_time, " +
+            "last_animation, animation_change_count, pose_animation, recent_animations) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
+                
+                if (tickData.getAnimationData() != null && tickId != null) {
+                    DataStructures.AnimationData animations = tickData.getAnimationData();
+                    
+                    stmt.setObject(1, tickData.getSessionId());
+                    stmt.setLong(2, tickId);
+                    stmt.setObject(3, tickData.getTickNumber());
+                    stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
+                    stmt.setObject(5, animations.getCurrentAnimation());
+                    stmt.setString(6, animations.getAnimationType());
+                    stmt.setObject(7, animations.getAnimationDuration());
+                    stmt.setObject(8, animations.getAnimationStartTime());
+                    stmt.setString(9, animations.getLastAnimation());
+                    stmt.setObject(10, animations.getAnimationChangeCount());
+                    stmt.setObject(11, animations.getPoseAnimation());
+                    
+                    // Convert recent animations list to JSONB
+                    stmt.setString(12, animations.getRecentAnimations() != null ? 
+                        convertToJson(animations.getRecentAnimations()) : "[]");
+                    
+                    stmt.addBatch();
+                }
+            }
+            
+            int[] results = stmt.executeBatch();
+            log.debug("[DATABASE] Animations data batch insert: {} records", results.length);
+        }
+    }
+    
+    /**
+     * Insert interactions data batch - HIGH Priority Gap Resolution
+     */
+    private void insertInteractionsDataBatch(Connection conn, List<TickDataCollection> batch, List<Long> tickIds) throws SQLException
+    {
+        String insertSQL = 
+            "INSERT INTO interactions_data (session_id, tick_id, tick_number, timestamp, " +
+            "last_interaction_type, last_interaction_target, last_interaction_time, " +
+            "interaction_count, most_common_interaction, average_interaction_interval, " +
+            "current_target, interaction_type, recent_interactions) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
+                
+                if (tickData.getInteractionData() != null && tickId != null) {
+                    DataStructures.InteractionData interactions = tickData.getInteractionData();
+                    
+                    stmt.setObject(1, tickData.getSessionId());
+                    stmt.setLong(2, tickId);
+                    stmt.setObject(3, tickData.getTickNumber());
+                    stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
+                    stmt.setString(5, interactions.getLastInteractionType());
+                    stmt.setString(6, interactions.getLastInteractionTarget());
+                    stmt.setObject(7, interactions.getLastInteractionTime());
+                    stmt.setObject(8, interactions.getInteractionCount());
+                    stmt.setString(9, interactions.getMostCommonInteraction());
+                    stmt.setObject(10, interactions.getAverageInteractionInterval());
+                    stmt.setString(11, interactions.getCurrentTarget());
+                    stmt.setString(12, interactions.getInteractionType());
+                    
+                    // Recent interactions stored as JSONB
+                    stmt.setString(13, interactions.getRecentInteractions() != null ? 
+                        convertInteractionsToJson(interactions.getRecentInteractions()) : "[]");
+                    
+                    stmt.addBatch();
+                }
+            }
+            
+            int[] results = stmt.executeBatch();
+            log.debug("[DATABASE] Interactions data batch insert: {} records", results.length);
+        }
+    }
+    
+    /**
+     * Insert nearby players data batch - MEDIUM Priority Gap Resolution
+     */
+    private void insertNearbyPlayersDataBatch(Connection conn, List<TickDataCollection> batch, List<Long> tickIds) throws SQLException
+    {
+        String insertSQL = 
+            "INSERT INTO nearby_players_data (session_id, tick_id, tick_number, timestamp, " +
+            "player_count, friend_count, clan_count, pk_count, average_combat_level, " +
+            "most_common_activity, players_details) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
+                
+                if (tickData.getNearbyPlayers() != null && tickId != null) {
+                    DataStructures.NearbyPlayersData players = tickData.getNearbyPlayers();
+                    
+                    stmt.setObject(1, tickData.getSessionId());
+                    stmt.setLong(2, tickId);
+                    stmt.setObject(3, tickData.getTickNumber());
+                    stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
+                    stmt.setObject(5, players.getPlayerCount());
+                    stmt.setObject(6, players.getFriendCount());
+                    stmt.setObject(7, players.getClanCount());
+                    stmt.setObject(8, players.getPkCount());
+                    stmt.setObject(9, players.getAverageCombatLevel());
+                    stmt.setString(10, players.getMostCommonActivity());
+                    
+                    // Convert player details to JSONB
+                    stmt.setString(11, players.getPlayers() != null ? 
+                        convertPlayersToJson(players.getPlayers()) : "[]");
+                    
+                    stmt.addBatch();
+                }
+            }
+            
+            int[] results = stmt.executeBatch();
+            log.debug("[DATABASE] Nearby players data batch insert: {} records", results.length);
+        }
+    }
+    
+    /**
+     * Insert nearby NPCs data batch - MEDIUM Priority Gap Resolution
+     */
+    private void insertNearbyNPCsDataBatch(Connection conn, List<TickDataCollection> batch, List<Long> tickIds) throws SQLException
+    {
+        String insertSQL = 
+            "INSERT INTO nearby_npcs_data (session_id, tick_id, tick_number, timestamp, " +
+            "npc_count, aggressive_npc_count, combat_npc_count, most_common_npc_type, " +
+            "average_npc_combat_level, npcs_details) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
+                
+                if (tickData.getNearbyNPCs() != null && tickId != null) {
+                    DataStructures.NearbyNPCsData npcs = tickData.getNearbyNPCs();
+                    
+                    stmt.setObject(1, tickData.getSessionId());
+                    stmt.setLong(2, tickId);
+                    stmt.setObject(3, tickData.getTickNumber());
+                    stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
+                    stmt.setObject(5, npcs.getNpcCount());
+                    stmt.setObject(6, npcs.getAggressiveNPCCount());
+                    stmt.setObject(7, npcs.getCombatNPCCount());
+                    stmt.setString(8, npcs.getMostCommonNPCType());
+                    stmt.setObject(9, npcs.getAverageNPCCombatLevel());
+                    
+                    // Convert NPC details to JSONB
+                    stmt.setString(10, npcs.getNpcs() != null ? 
+                        convertNPCsToJson(npcs.getNpcs()) : "[]");
+                    
+                    stmt.addBatch();
+                }
+            }
+            
+            int[] results = stmt.executeBatch();
+            log.debug("[DATABASE] Nearby NPCs data batch insert: {} records", results.length);
+        }
+    }
+    
+    /**
+     * Helper method to convert player list to JSON
+     */
+    private String convertPlayersToJson(java.util.List<DataStructures.PlayerData> players) {
+        if (players == null || players.isEmpty()) {
+            return "[]";
+        }
+        
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < players.size(); i++) {
+            if (i > 0) json.append(",");
+            DataStructures.PlayerData player = players.get(i);
+            json.append("{")
+                .append("\"name\":\"").append(player.getPlayerName() != null ? player.getPlayerName() : "").append("\",")
+                .append("\"combatLevel\":").append(player.getCombatLevel() != null ? player.getCombatLevel() : 0).append(",")
+                .append("\"worldX\":").append(player.getWorldX() != null ? player.getWorldX() : 0).append(",")
+                .append("\"worldY\":").append(player.getWorldY() != null ? player.getWorldY() : 0).append(",")
+                .append("\"plane\":").append(player.getPlane() != null ? player.getPlane() : 0).append(",")
+                .append("\"animation\":").append(player.getAnimation() != null ? player.getAnimation() : -1).append(",")
+                .append("\"isFriend\":").append(player.getIsFriend() != null ? player.getIsFriend() : false).append(",")
+                .append("\"isClanMember\":").append(player.getIsClanMember() != null ? player.getIsClanMember() : false)
+                .append("}");
+        }
+        json.append("]");
+        return json.toString();
+    }
+    
+    /**
+     * Helper method to convert NPC list to JSON
+     */
+    private String convertNPCsToJson(java.util.List<DataStructures.NPCData> npcs) {
+        if (npcs == null || npcs.isEmpty()) {
+            return "[]";
+        }
+        
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < npcs.size(); i++) {
+            if (i > 0) json.append(",");
+            DataStructures.NPCData npc = npcs.get(i);
+            json.append("{")
+                .append("\"npcId\":").append(npc.getNpcId() != null ? npc.getNpcId() : 0).append(",")
+                .append("\"name\":\"").append(npc.getNpcName() != null ? npc.getNpcName() : "").append("\",")
+                .append("\"worldX\":").append(npc.getWorldX() != null ? npc.getWorldX() : 0).append(",")
+                .append("\"worldY\":").append(npc.getWorldY() != null ? npc.getWorldY() : 0).append(",")
+                .append("\"plane\":").append(npc.getPlane() != null ? npc.getPlane() : 0).append(",")
+                .append("\"combatLevel\":").append(npc.getCombatLevel() != null ? npc.getCombatLevel() : 0).append(",")
+                .append("\"animation\":").append(npc.getAnimation() != null ? npc.getAnimation() : -1).append(",")
+                .append("\"isInteracting\":").append(npc.getIsInteracting() != null ? npc.getIsInteracting() : false)
+                .append("}");
+        }
+        json.append("]");
+        return json.toString();
+    }
+    
+    /**
+     * Helper method to convert HitsplatApplied list to JSON
+     */
+    private String convertHitsplatsToJson(java.util.List<net.runelite.api.events.HitsplatApplied> hitsplats) {
+        if (hitsplats == null || hitsplats.isEmpty()) {
+            return "[]";
+        }
+        
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < hitsplats.size(); i++) {
+            if (i > 0) json.append(",");
+            net.runelite.api.events.HitsplatApplied hitsplat = hitsplats.get(i);
+            if (hitsplat != null && hitsplat.getHitsplat() != null) {
+                String actorName = "";
+                if (hitsplat.getActor() != null && hitsplat.getActor().getName() != null) {
+                    actorName = hitsplat.getActor().getName();
+                }
+                
+                json.append("{")
+                    .append("\"damage\":").append(hitsplat.getHitsplat().getAmount()).append(",")
+                    .append("\"type\":\"").append(getHitsplatTypeName(hitsplat.getHitsplat().getHitsplatType())).append("\",")
+                    .append("\"actor\":\"").append(actorName).append("\",")
+                    .append("\"isOthers\":").append(hitsplat.getHitsplat().isOthers())
+                    .append("}");
+            } else {
+                // Empty hitsplat object if data is null
+                json.append("{\"damage\":0,\"type\":\"DAMAGE\",\"actor\":\"\",\"isOthers\":false}");
+            }
+        }
+        json.append("]");
+        return json.toString();
+    }
+    
+    /**
+     * Helper method to convert InteractingChanged list to JSON
+     */
+    private String convertInteractionsToJson(java.util.List<net.runelite.api.events.InteractingChanged> interactions) {
+        if (interactions == null || interactions.isEmpty()) {
+            return "[]";
+        }
+        
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < interactions.size(); i++) {
+            if (i > 0) json.append(",");
+            net.runelite.api.events.InteractingChanged interaction = interactions.get(i);
+            if (interaction != null) {
+                String sourceName = "";
+                String targetName = "";
+                
+                if (interaction.getSource() != null && interaction.getSource().getName() != null) {
+                    sourceName = interaction.getSource().getName();
+                }
+                if (interaction.getTarget() != null && interaction.getTarget().getName() != null) {
+                    targetName = interaction.getTarget().getName();
+                }
+                
+                json.append("{")
+                    .append("\"source\":\"").append(sourceName).append("\",")
+                    .append("\"target\":\"").append(targetName).append("\",")
+                    .append("\"timestamp\":").append(System.currentTimeMillis())
+                    .append("}");
+            } else {
+                // Empty interaction object if data is null
+                json.append("{\"source\":\"\",\"target\":\"\",\"timestamp\":0}");
+            }
+        }
+        json.append("]");
+        return json.toString();
+    }
+    
+    /**
+     * Helper method to convert simple lists to JSON strings
+     */
+    private String convertToJson(java.util.List<?> list) {
+        if (list == null || list.isEmpty()) {
+            return "[]";
+        }
+        
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) json.append(",");
+            Object item = list.get(i);
+            if (item instanceof String) {
+                json.append("\"").append(item).append("\"");
+            } else {
+                json.append(item);
+            }
+        }
+        json.append("]");
+        return json.toString();
+    }
+    
+    /**
+     * Helper method to convert hitsplat type int to string name
+     */
+    private String getHitsplatTypeName(int hitsplatType)
+    {
+        switch (hitsplatType) {
+            case 12: return "BLOCK_ME";
+            case 13: return "BLOCK_OTHER";
+            case 16: return "DAMAGE_ME";
+            case 17: return "DAMAGE_OTHER";
+            case 65: return "POISON";
+            case 4: return "DISEASE";
+            case 3: return "DISEASE_BLOCKED";
+            case 5: return "VENOM";
+            case 6: return "HEAL";
+            case 11: return "CYAN_UP";
+            case 15: return "CYAN_DOWN";
+            case 18: return "DAMAGE_ME_CYAN";
+            case 19: return "DAMAGE_OTHER_CYAN";
+            case 20: return "DAMAGE_ME_ORANGE";
+            case 21: return "DAMAGE_OTHER_ORANGE";
+            case 22: return "DAMAGE_ME_YELLOW";
+            case 23: return "DAMAGE_OTHER_YELLOW";
+            case 24: return "DAMAGE_ME_WHITE";
+            case 25: return "DAMAGE_OTHER_WHITE";
+            case 43: return "DAMAGE_MAX_ME";
+            case 44: return "DAMAGE_MAX_ME_CYAN";
+            case 45: return "DAMAGE_MAX_ME_ORANGE";
+            case 46: return "DAMAGE_MAX_ME_YELLOW";
+            case 47: return "DAMAGE_MAX_ME_WHITE";
+            case 53: return "DAMAGE_ME_POISE";
+            case 54: return "DAMAGE_OTHER_POISE";
+            case 55: return "DAMAGE_MAX_ME_POISE";
+            case 0: return "CORRUPTION";
+            case 60: return "PRAYER_DRAIN";
+            case 67: return "BLEED";
+            case 71: return "SANITY_DRAIN";
+            case 72: return "SANITY_RESTORE";
+            case 73: return "DOOM";
+            case 74: return "BURN";
+            default: return "UNKNOWN_" + hitsplatType;
         }
     }
     
