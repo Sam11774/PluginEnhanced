@@ -245,8 +245,11 @@ public class DataStructures
         private Long valueGained;
         private Long valueLost;
         
+        // Noted items tracking
+        private Integer notedItemsCount;
+        
         public int getDataPointCount() {
-            int count = 15; // usedSlots, freeSlots, totalValue, lastItemUsed, lastItemId, mostValuableItemId, mostValuableItemName, mostValuableItemQuantity, mostValuableItemValue, itemsAdded, itemsRemoved, quantityGained, quantityLost, valueGained, valueLost
+            int count = 16; // usedSlots, freeSlots, totalValue, lastItemUsed, lastItemId, mostValuableItemId, mostValuableItemName, mostValuableItemQuantity, mostValuableItemValue, itemsAdded, itemsRemoved, quantityGained, quantityLost, valueGained, valueLost, notedItemsCount
             count += (inventoryItems != null ? inventoryItems.length : 0);
             count += (itemCounts != null ? itemCounts.size() : 0);
             return count;
@@ -335,15 +338,22 @@ public class DataStructures
         private Long worldTick;
         private String environmentType;
         
+        // FIXED: Added missing fields for database schema compatibility
+        private Integer regionId;
+        private Integer chunkX;
+        private Integer chunkY;
+        private String lightingCondition;
+        
         public int getDataPointCount() { 
-            int count = 11; // primitive/string fields (added environmentType)
+            int count = 15; // primitive/string fields (added environmentType + regionId, chunkX, chunkY, lightingCondition)
             count += (mapRegions != null ? mapRegions.length : 0);
             return count;
         }
-        public long getEstimatedSize() { return 64 + (16 * 10) + 
+        public long getEstimatedSize() { return 64 + (16 * 14) + 
             (mapRegions != null ? mapRegions.length * 4 : 0) +
             (currentRegion != null ? currentRegion.length() * 2 : 0) +
-            (weatherCondition != null ? weatherCondition.length() * 2 : 0); }
+            (weatherCondition != null ? weatherCondition.length() * 2 : 0) +
+            (lightingCondition != null ? lightingCondition.length() * 2 : 0); }
     }
     
     @Data
@@ -538,8 +548,19 @@ public class DataStructures
         private Integer closestObjectId;
         private String closestObjectName;
         
+        // ENHANCED: Distance analytics for objects
+        private Integer closestBankDistance;
+        private String closestBankName;
+        private Integer closestAltarDistance;
+        private String closestAltarName;
+        private Integer closestShopDistance;
+        private String closestShopName;
+        private Integer lastClickedObjectDistance;
+        private String lastClickedObjectName;
+        private Long timeSinceLastObjectClick;
+        
         public int getDataPointCount() {
-            int count = 8; // objectCount, mostCommonObjectType, scanRadius, uniqueObjectTypes, interactableObjectsCount, closestObjectDistance, closestObjectId, closestObjectName
+            int count = 15; // Base fields + enhanced distance analytics fields
             count += (objects != null ? objects.size() * 8 : 0);
             count += (objectTypeCounts != null ? objectTypeCounts.size() : 0);
             return count;
@@ -587,8 +608,19 @@ public class DataStructures
         private Integer scanRadius;
         private List<GroundItemData> groundItems;
         
+        // ENHANCED: Distance analytics for ground items
+        private Integer closestItemDistance;
+        private String closestItemName;
+        private Integer closestValuableItemDistance; // Items >1000gp
+        private String closestValuableItemName;
+        private Integer myDropsCount; // Items dropped by this player
+        private Long myDropsTotalValue;
+        private Integer otherPlayerDropsCount;
+        private Long shortestDespawnTimeMs; // Time until next item despawns
+        private String nextDespawnItemName;
+        
         public int getDataPointCount() { 
-            int count = 6; // totalItems, totalQuantity, totalValue, mostValuableItem, uniqueItemTypes, scanRadius
+            int count = 15; // Base fields + enhanced distance analytics fields  
             count += (items != null ? items.size() * 6 : 0); // 6 data points per ground item
             count += (groundItems != null ? groundItems.size() * 6 : 0); // additional ground items
             return count;
@@ -609,11 +641,20 @@ public class DataStructures
         private Integer itemId;
         private String itemName;
         private Integer quantity;
+        private Integer itemValue; // Individual item value
         private Integer worldX;
         private Integer worldY;
         private Integer plane;
         
-        public int getDataPointCount() { return 6; }
+        // Computed total value for this stack
+        public Integer getTotalValue() {
+            if (itemValue != null && quantity != null) {
+                return itemValue * quantity;
+            }
+            return 0;
+        }
+        
+        public int getDataPointCount() { return 7; }
         public long getEstimatedSize() { 
             return 64 + (16 * 5) + 
                 (itemName != null ? itemName.length() * 2 : 0);
@@ -632,13 +673,18 @@ public class DataStructures
         private Integer activeProjectiles;
         private Integer uniqueProjectileTypes;
         
+        // ENHANCED: Combat vs Magic projectile classification (for database storage)
+        private Integer mostCommonProjectileId;
+        private Integer combatProjectiles;
+        private Integer magicProjectiles;
+        
         public int getDataPointCount() { 
-            int count = 2; // activeProjectileCount, mostCommonProjectileType
+            int count = 5; // activeProjectiles, uniqueProjectileTypes, mostCommonProjectileType, combatProjectiles, magicProjectiles
             count += (projectiles != null ? projectiles.size() * 8 : 0); // 8 data points per projectile
             return count;
         }
         public long getEstimatedSize() { 
-            return 64 + (16 * 2) + 
+            return 64 + (16 * 5) + 
                 (projectiles != null ? projectiles.size() * 120 : 0) +
                 (mostCommonProjectileType != null ? mostCommonProjectileType.length() * 2 : 0);
         }
@@ -991,20 +1037,102 @@ public class DataStructures
         private String lastBankAction;
         private String mostValuableBankItem;
         private Long lastBankActivity;
-        private List<Item> bankItems;
+        private List<BankItemData> bankItems; // ENHANCED: Changed from Item to BankItemData
         private Integer recentDeposits;
         private Integer recentWithdrawals;
         
+        // ENHANCED: Advanced banking features
+        private Integer currentTab;
+        private String searchQuery;
+        private String bankInterfaceType; // booth, chest, deposit_box
+        private String lastDepositMethod; // 1, 5, 10, All, X
+        private String lastWithdrawMethod; // 1, 5, 10, All, X
+        private Integer bankLocationId;
+        private Boolean searchActive;
+        private Float bankOrganizationScore;
+        private List<BankActionData> recentActions;
+        private Integer tabSwitchCount;
+        private Integer totalDeposits;
+        private Integer totalWithdrawals;
+        private Long timeSpentInBank;
+        
+        // ENHANCED: Noted items and placeholder tracking
+        private Integer notedItemsCount; // Count of noted items in bank
+        
         public int getDataPointCount() { 
-            int count = 10; // basic fields (added recentDeposits, recentWithdrawals)
-            count += (bankItems != null ? bankItems.size() * 2 : 0); // 2 data points per item (id, quantity)
+            int count = 22; // enhanced fields count (added placeholder and noted item tracking)
+            count += (bankItems != null ? bankItems.size() * 13 : 0); // 13 data points per bank item (updated)
+            count += (recentActions != null ? recentActions.size() * 6 : 0); // 6 data points per action
             return count;
         }
         public long getEstimatedSize() { 
-            return 64 + (16 * 6) + (8 * 1) +
+            return 64 + (16 * 15) + (8 * 5) +
                 (lastBankAction != null ? lastBankAction.length() * 2 : 0) +
                 (mostValuableBankItem != null ? mostValuableBankItem.length() * 2 : 0) +
-                (bankItems != null ? bankItems.size() * 16 : 0);
+                (searchQuery != null ? searchQuery.length() * 2 : 0) +
+                (bankInterfaceType != null ? bankInterfaceType.length() * 2 : 0) +
+                (bankItems != null ? bankItems.size() * 64 : 0) +
+                (recentActions != null ? recentActions.size() * 48 : 0);
+        }
+    }
+    
+    /**
+     * ENHANCED: Individual bank item data with position and metadata
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class BankItemData {
+        private Integer itemId;
+        private String itemName;
+        private Integer quantity;
+        private Long itemValue;
+        private Integer slotPosition;
+        private Integer tabNumber;
+        private Integer coordinateX;
+        private Integer coordinateY;
+        private Boolean isNoted;
+        private Boolean isStackable;
+        private Boolean isPlaceholder; // ENHANCED: Detect placeholder items (quantity = 0)
+        private String category; // weapon, armor, food, potion, etc.
+        private Integer gePrice; // Grand Exchange price if available
+        
+        public int getDataPointCount() { return 13; } // Updated count
+        public long getEstimatedSize() { 
+            return 64 + (16 * 8) + 
+                (itemName != null ? itemName.length() * 2 : 0) +
+                (category != null ? category.length() * 2 : 0);
+        }
+    }
+    
+    /**
+     * ENHANCED: Bank action tracking for transaction history and behavioral analysis
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class BankActionData {
+        private String actionType; // deposit, withdraw, search, tab_switch, pin_entry
+        private Integer itemId;
+        private String itemName;
+        private Integer quantity;
+        private String methodUsed; // 1, 5, 10, All, X, search_query
+        private Long actionTimestamp;
+        private Integer fromTab;
+        private Integer toTab;
+        private String searchQuery;
+        private Integer durationMs; // Time taken for action
+        private Boolean isNoted; // true if this action involved noted items
+        
+        public int getDataPointCount() { return 11; }
+        public long getEstimatedSize() { 
+            return 64 + (16 * 6) + 
+                (actionType != null ? actionType.length() * 2 : 0) +
+                (itemName != null ? itemName.length() * 2 : 0) +
+                (methodUsed != null ? methodUsed.length() * 2 : 0) +
+                (searchQuery != null ? searchQuery.length() * 2 : 0);
         }
     }
     

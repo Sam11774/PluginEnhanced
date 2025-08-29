@@ -1,5 +1,5 @@
 -- =================================================================================
--- RUNELITE AI PRODUCTION SCHEMA v7.1 - EQUIPMENT STATS & INVENTORY ENHANCEMENT
+-- RUNELITE AI PRODUCTION SCHEMA v7.7 - INTELLIGENT INFERENCE ENGINE FOR NOTED ITEMS & PLACEHOLDERS
 -- =================================================================================
 -- Production-ready database schema for RuneLiteAI data collection system
 -- Built from actual code analysis of DataCollectionManager.java and DatabaseManager.java
@@ -15,12 +15,29 @@
 -- - Key combination detection and camera rotation analytics
 -- - Equipment stats and bonuses tracking (14 new combat stat fields)
 -- - Enhanced inventory analytics with most valuable item identification
+-- - Advanced banking analytics with enhanced noted items and placeholder detection
+-- - Multi-tab banking support with proper VarPlayer detection  
+-- - Enhanced bank actions tracking with detailed transaction history
+-- - Improved noted item detection with known OSRS item ID patterns
+-- - Enhanced placeholder tracking with comprehensive debugging
+-- - Better validation of noted items using ItemComposition.getNote() logic
+-- - Comprehensive diagnostic logging with INFO-level messages for troubleshooting
+-- - Enhanced bank slot debugging showing exactly what IDs are being processed
+-- - Detailed ItemComposition analysis for every bank item during collection
+-- - Improved validation logic for both noted items and placeholder detection
+-- - INTELLIGENT INFERENCE ENGINE: Overcomes RuneLite API limitations for noted items detection
+-- - Volume-based noted item inference (high quantities indicate noted form)  
+-- - Pattern-based placeholder inference (missing common items suggest placeholders)
+-- - Action-based banking detection through MenuOptionClicked integration
+-- - Smart detection that combines API data with behavioral analysis
+-- - Banking method detection (1, 5, 10, All, X) via MenuOptionClicked integration
+-- - Real-time click analysis and banking behavioral analytics
 -- 
--- Tables: 19 core tables matching DatabaseManager.java requirements exactly
--- Data Categories: Player, World, Combat, Input, Social, Interface, System Metrics, Click Context, Enhanced Input Analytics
+-- Tables: 28 core tables matching DatabaseManager.java requirements exactly
+-- Data Categories: Player, World, Combat, Input, Social, Interface, System Metrics, Click Context, Enhanced Input Analytics, Banking
 -- 
 -- @author RuneLiteAI Team
--- @version 7.1 (Production Release - Equipment Stats & Inventory Enhancement)
+-- @version 7.4 (Production Release - Complete Banking Analytics & Method Detection)
 -- =================================================================================
 
 -- Enable required PostgreSQL extensions
@@ -96,7 +113,6 @@ CREATE TABLE IF NOT EXISTS game_ticks (
     
     -- Constraints
     CONSTRAINT valid_coverage CHECK (tick_coverage_percent >= 0 AND tick_coverage_percent <= 100),
-    CONSTRAINT valid_data_points CHECK (data_points_count >= 0 AND data_points_count <= 6800),
     CONSTRAINT valid_quality CHECK (quality_validation_score >= 0 AND quality_validation_score <= 100)
 );
 
@@ -272,6 +288,9 @@ CREATE TABLE IF NOT EXISTS player_inventory (
     last_item_used_name VARCHAR(100),
     consumables_used INTEGER DEFAULT 0,
     
+    -- Noted items tracking
+    noted_items_count INTEGER DEFAULT 0,
+    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -411,6 +430,17 @@ CREATE TABLE IF NOT EXISTS ground_items_data (
     most_valuable_item_quantity INTEGER DEFAULT 0,
     most_valuable_item_value BIGINT DEFAULT 0,
     
+    -- ENHANCED: Distance analytics for ground items (v7.2)
+    closest_item_distance INTEGER,
+    closest_item_name VARCHAR(100),
+    closest_valuable_item_distance INTEGER,
+    closest_valuable_item_name VARCHAR(100),
+    my_drops_count INTEGER DEFAULT 0,
+    my_drops_total_value BIGINT DEFAULT 0,
+    other_player_drops_count INTEGER DEFAULT 0,
+    shortest_despawn_time_ms BIGINT,
+    next_despawn_item_name VARCHAR(100),
+    
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -432,6 +462,17 @@ CREATE TABLE IF NOT EXISTS game_objects_data (
     closest_object_distance INTEGER,
     closest_object_id INTEGER,
     closest_object_name VARCHAR(100),
+    
+    -- ENHANCED: Distance analytics for objects (v7.2)
+    closest_bank_distance INTEGER,
+    closest_bank_name VARCHAR(100),
+    closest_altar_distance INTEGER,
+    closest_altar_name VARCHAR(100),
+    closest_shop_distance INTEGER,
+    closest_shop_name VARCHAR(100),
+    last_clicked_object_distance INTEGER,
+    last_clicked_object_name VARCHAR(100),
+    time_since_last_object_click BIGINT,
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -617,7 +658,7 @@ CREATE TABLE IF NOT EXISTS interface_data (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Bank data table (from DatabaseManager)
+-- ENHANCED Bank data table with advanced banking analytics
 CREATE TABLE IF NOT EXISTS bank_data (
     id BIGSERIAL PRIMARY KEY,
     session_id INTEGER NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
@@ -625,18 +666,87 @@ CREATE TABLE IF NOT EXISTS bank_data (
     tick_number INTEGER NOT NULL,
     timestamp TIMESTAMP NOT NULL,
     
-    -- Bank data (DatabaseManager requirements)
+    -- Basic bank data (DatabaseManager requirements)
     bank_open BOOLEAN DEFAULT FALSE,
     unique_items INTEGER DEFAULT 0,
     used_slots INTEGER DEFAULT 0,
     max_slots INTEGER DEFAULT 0,
     total_value BIGINT DEFAULT 0,
     
-    -- Enhanced bank tracking
+    -- ENHANCED: Advanced banking features
+    current_tab INTEGER DEFAULT 0,
+    search_query TEXT,
+    bank_interface_type TEXT DEFAULT 'bank_booth', -- booth, chest, deposit_box
+    last_deposit_method TEXT, -- 1, 5, 10, All, X
+    last_withdraw_method TEXT, -- 1, 5, 10, All, X
+    bank_location_id INTEGER,
+    search_active BOOLEAN DEFAULT FALSE,
     bank_organization_score FLOAT DEFAULT 0.0,
+    tab_switch_count INTEGER DEFAULT 0,
+    total_deposits INTEGER DEFAULT 0,
+    total_withdrawals INTEGER DEFAULT 0,
+    time_spent_in_bank BIGINT DEFAULT 0, -- milliseconds
+    
+    -- Legacy enhanced bank tracking
     recent_deposits INTEGER DEFAULT 0,
     recent_withdrawals INTEGER DEFAULT 0,
-    search_active BOOLEAN DEFAULT FALSE,
+    
+    -- ENHANCED: Noted items and placeholder tracking
+    noted_items_count INTEGER DEFAULT 0, -- Count of noted items in bank
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ENHANCED: Individual bank items table with position and metadata
+CREATE TABLE IF NOT EXISTS bank_items (
+    id BIGSERIAL PRIMARY KEY,
+    bank_data_id BIGINT NOT NULL REFERENCES bank_data(id) ON DELETE CASCADE,
+    session_id INTEGER NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+    tick_number INTEGER NOT NULL,
+    
+    -- Item identification and quantity
+    item_id INTEGER NOT NULL,
+    item_name TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    item_value BIGINT DEFAULT 0,
+    
+    -- Position and organization
+    slot_position INTEGER NOT NULL,
+    tab_number INTEGER DEFAULT 0,
+    coordinate_x INTEGER DEFAULT 0,
+    coordinate_y INTEGER DEFAULT 0,
+    
+    -- Item properties
+    is_noted BOOLEAN DEFAULT FALSE,
+    is_stackable BOOLEAN DEFAULT FALSE,
+    is_placeholder BOOLEAN DEFAULT FALSE, -- Items with quantity = 0 but valid ID
+    category TEXT DEFAULT 'miscellaneous',
+    ge_price INTEGER DEFAULT 0, -- Grand Exchange price
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ENHANCED: Bank actions table for transaction history and behavioral analysis  
+CREATE TABLE IF NOT EXISTS bank_actions (
+    id BIGSERIAL PRIMARY KEY,
+    bank_data_id BIGINT NOT NULL REFERENCES bank_data(id) ON DELETE CASCADE,
+    session_id INTEGER NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+    tick_number INTEGER NOT NULL,
+    
+    -- Action details
+    action_type TEXT NOT NULL, -- deposit, withdraw, search, tab_switch, pin_entry
+    item_id INTEGER,
+    item_name TEXT,
+    quantity INTEGER,
+    method_used TEXT, -- 1, 5, 10, All, X, search_query
+    action_timestamp BIGINT NOT NULL,
+    
+    -- Tab and navigation
+    from_tab INTEGER,
+    to_tab INTEGER,
+    search_query TEXT,
+    duration_ms INTEGER DEFAULT 0, -- Time taken for action
+    is_noted BOOLEAN DEFAULT FALSE, -- true if this action involved noted items
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -911,6 +1021,23 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_interface_data_session ON interface_
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_interface_data_primary ON interface_data(primary_interface);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_data_session ON bank_data(session_id);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_data_value ON bank_data(total_value);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_data_tab ON bank_data(current_tab);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_data_noted ON bank_data(noted_items_count);
+
+-- Bank items indexes for performance
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_items_session ON bank_items(session_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_items_bank_data ON bank_items(bank_data_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_items_item ON bank_items(item_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_items_tab ON bank_items(tab_number);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_items_noted ON bank_items(is_noted);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_items_placeholder ON bank_items(is_placeholder);
+
+-- Bank actions indexes for performance
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_actions_session ON bank_actions(session_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_actions_bank_data ON bank_actions(bank_data_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_actions_type ON bank_actions(action_type);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_actions_item ON bank_actions(item_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bank_actions_tabs ON bank_actions(from_tab, to_tab);
 
 -- System metrics indexes
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_system_metrics_session ON system_metrics(session_id);

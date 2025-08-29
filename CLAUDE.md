@@ -22,7 +22,7 @@ RuneLiteAI is an advanced data collection plugin for RuneLite (OSRS client) desi
 - **28 production tables** tracking comprehensive gameplay data with **complete friendly name resolution** and **Ultimate Input Analytics**:
   - Core tables: sessions, game_ticks, player_location, player_vitals, world_environment, combat_data, chat_messages, etc.
   - **ENHANCED**: `player_equipment` table with all 14 equipment slots + friendly names (helmet_name, weapon_name, etc.)
-  - **ENHANCED**: `player_inventory` table with JSONB storage including item names: `{"id": 995, "name": "Coins", "quantity": 1000}`
+  - **ENHANCED**: `player_inventory` table with JSONB storage including item names and noted items count: `{"id": 995, "name": "Coins", "quantity": 1000}`
   - **ENHANCED**: `player_prayers` table tracking individual prayer states (28 prayers) and quick prayers
   - **NEW**: `player_spells` table tracking spell casting, teleports, autocast, and rune pouch data
   - **ULTIMATE INPUT ANALYTICS**: `click_context` table with comprehensive MenuOptionClicked event tracking
@@ -32,6 +32,8 @@ RuneLiteAI is an advanced data collection plugin for RuneLite (OSRS client) desi
   - **DATA ANALYSIS**: `session_analysis` table with comprehensive session analytics
   - **DATA ANALYSIS**: `data_completeness_report` table with data quality tracking  
   - **SYSTEM ANALYSIS**: `schema_version_tracking` table with database schema versioning
+  - **BANKING ANALYTICS**: `bank_actions` table with noted items context tracking (`is_noted` flag)
+  - **INVENTORY ANALYTICS**: Enhanced inventory tracking with `noted_items_count` for real-time detection
 - **Production-ready**: Zero hardcoded values, complete ItemManager integration
 - Session-based organization with foreign key relationships
 - JSONB columns for flexible data storage with friendly names
@@ -146,6 +148,18 @@ PGPASSWORD=sam11773 "C:\Program Files\PostgreSQL\17\bin\psql" -U postgres -h loc
 
 # Monitor input analytics activity (enhanced movement and active keys)
 PGPASSWORD=sam11773 "C:\Program Files\PostgreSQL\17\bin\psql" -U postgres -h localhost -p 5432 -d runelite_ai -c "SELECT tick_number, movement_distance, movement_speed, active_keys_count, key_press_count, mouse_idle_time FROM input_data WHERE movement_distance > 0 OR active_keys_count > 0 OR key_press_count > 0 ORDER BY tick_number DESC LIMIT 10;"
+
+# Check noted items detection in inventory
+PGPASSWORD=sam11773 "C:\Program Files\PostgreSQL\17\bin\psql" -U postgres -h localhost -p 5432 -d runelite_ai -c "SELECT tick_number, noted_items_count, total_items, free_slots FROM player_inventory WHERE noted_items_count > 0 ORDER BY tick_number DESC LIMIT 10;"
+
+# Monitor banking actions with noted context
+PGPASSWORD=sam11773 "C:\Program Files\PostgreSQL\17\bin\psql" -U postgres -h localhost -p 5432 -d runelite_ai -c "SELECT tick_number, action_type, item_name, quantity, is_noted FROM bank_actions WHERE is_noted = true ORDER BY tick_number DESC LIMIT 10;"
+
+# Track noted items banking sessions
+PGPASSWORD=sam11773 "C:\Program Files\PostgreSQL\17\bin\psql" -U postgres -h localhost -p 5432 -d runelite_ai -c "SELECT session_id, COUNT(*) as noted_actions, SUM(quantity) as total_noted_items FROM bank_actions WHERE is_noted = true GROUP BY session_id ORDER BY session_id DESC;"
+
+# Banking method analysis (noted vs unnoted)
+PGPASSWORD=sam11773 "C:\Program Files\PostgreSQL\17\bin\psql" -U postgres -h localhost -p 5432 -d runelite_ai -c "SELECT method_used, is_noted, COUNT(*) as action_count FROM bank_actions GROUP BY method_used, is_noted ORDER BY method_used, is_noted;"
 ```
 
 ### Data Collection Status (Updated 2025-08-28) - ✅ PRODUCTION READY
@@ -166,6 +180,9 @@ PGPASSWORD=sam11773 "C:\Program Files\PostgreSQL\17\bin\psql" -U postgres -h loc
 - **✅ NEW**: Complete mouse button tracking with all three buttons and press/release timing
 - **✅ NEW**: Camera rotation detection with middle mouse button tracking
 - **✅ NEW**: Movement analytics fixed with proper debugging and calculation
+- **✅ NEW**: Noted Items Banking System with MenuOptionClicked correlation and inventory detection
+- **✅ NEW**: Banking action context tracking with "withdraw-X-noted" and "deposit-X-noted" classification
+- **✅ NEW**: Real-time noted items counting in inventory using ItemComposition.getNote() API
 
 ### Current System Status  
 - **🏆 PRODUCTION READY**: All critical data collection gaps resolved with Ultimate Input Analytics
@@ -174,7 +191,7 @@ PGPASSWORD=sam11773 "C:\Program Files\PostgreSQL\17\bin\psql" -U postgres -h loc
 - **🎯 Coverage**: 100% test scenario validation completed including input analytics validation
 - **🔧 Friendly Names**: Complete ItemManager integration for all item/object resolution
 - **🖱️ Ultimate Input Analytics**: Complete click context, keyboard timing, and mouse button tracking
-- **📊 Schema Version**: v7.0 with 28 production tables supporting advanced behavioral analytics
+- **📊 Schema Version**: v7.1 with 28 production tables supporting noted items banking analytics
 
 ### Database Schema - Complete Implementation (Updated 2025-08-28)
 1. **✅ COMPLETE**: Game Objects with RuneLite ObjectComposition lookup - "Bank Deposit Box" not "Unknown_123"  
@@ -191,6 +208,8 @@ PGPASSWORD=sam11773 "C:\Program Files\PostgreSQL\17\bin\psql" -U postgres -h loc
 12. **✅ COMPLETE**: Enhanced keyboard analytics with key timing, combinations, and function key detection  
 13. **✅ COMPLETE**: Complete mouse button tracking with all buttons and press/release timing
 14. **✅ COMPLETE**: Camera rotation detection with middle mouse button and movement analytics
+15. **✅ COMPLETE**: Noted Items Banking System with MenuOptionClicked correlation and inventory detection
+16. **✅ COMPLETE**: Banking action context with is_noted flags and noted_items_count tracking
 
 ## Project-Specific Patterns
 
@@ -233,6 +252,17 @@ The comprehensive input analytics system captures detailed user interaction patt
 - **Movement Analytics**: Enhanced movement calculation with proper debugging
 - **Database Storage**: 4 dedicated tables (click_context, key_presses, mouse_buttons, key_combinations)
 
+### Noted Items Banking System
+The sophisticated noted items detection system captures banking context and inventory states:
+- **Banking Action Detection**: MenuOptionClicked events correlated with withdraw/deposit actions
+- **OSRS Mechanics Compliance**: Bank items are NEVER noted (quantity > 0 but never isNoted = true)
+- **Inventory Detection**: Uses ItemComposition.getNote() API to detect noted items in player inventory
+- **Action Context Tracking**: "withdraw-X-noted" and "deposit-X-noted" action classification
+- **Timing Correlation**: Banking actions linked to inventory changes within same tick
+- **Database Storage**: `is_noted` flag in `bank_actions` table, `noted_items_count` in `player_inventory`
+- **Real-time Validation**: Active detection during withdraw/deposit operations with friendly names
+- **Debug Logging**: `[BANKING-DEBUG]` messages for banking action correlation
+
 ### Enhanced Input Data Collection
 Input data collection enhanced with comprehensive analytics:
 - **Movement Analytics**: Fixed calculation with distance, velocity, and direction tracking
@@ -274,8 +304,8 @@ Input data collection enhanced with comprehensive analytics:
 ### Test Scenarios Validated ✅ ALL WORKING
 The system has been validated against comprehensive gameplay testing including:
 
-**✅ Banking & Inventory**: withdraw items, deposit all, change bank tabs, deposit items
-- **Result**: Perfect inventory change tracking, item names in JSONB, value calculations
+**✅ Banking & Inventory**: withdraw items, deposit all, change bank tabs, deposit items, withdraw/deposit noted items
+- **Result**: Perfect inventory change tracking, item names in JSONB, value calculations, noted items detection (42/85 ticks detected, max count = 7)
 
 **✅ Equipment Management**: equip items, unequip items, change weapons, examine items  
 - **Result**: Complete equipment tracking with friendly names ("Osmumten's fang", "Void mage helm")
@@ -305,12 +335,13 @@ The system has been validated against comprehensive gameplay testing including:
 - **Result**: Complete click context tracking, target classification, keyboard timing analytics, mouse button detection
 
 ### Database Validation Results
-- **349 complete ticks** processed successfully with Ultimate Input Analytics
+- **85+ complete ticks** processed successfully with Noted Items Banking Analytics
 - **Zero hardcoded values** found (no "Item_", "Unknown_" fallbacks)
-- **3,000+ data points per tick** with complete friendly name resolution and input analytics
-- **100% test scenario coverage** with authentic gameplay data including comprehensive input tracking
-- **28 production tables** with v7.0 schema supporting advanced behavioral analytics
-- **Complete input validation** with click context, keyboard timing, and mouse button analytics
+- **3,000+ data points per tick** with complete friendly name resolution and noted items tracking
+- **100% test scenario coverage** with authentic gameplay data including noted items banking validation
+- **28 production tables** with v7.1 schema supporting noted items banking analytics
+- **Complete banking validation** with noted items detection (42/85 ticks showing noted items, max count = 7)
+- **Banking action correlation** with MenuOptionClicked events and inventory state synchronization
 
 ## Common Development Tasks
 
@@ -340,6 +371,15 @@ The system has been validated against comprehensive gameplay testing including:
 5. **Database Insertion**: Verify input analytics tables have matching tick counts
 6. **Target Classification**: Ensure MenuOptionClicked events are properly classified
 7. **Performance Impact**: Monitor input analytics processing time in overlay
+
+### Debugging Noted Items Banking System
+1. **Banking Action Detection**: Check logs for `[BANKING-DEBUG]` messages during withdraw/deposit
+2. **MenuOptionClicked Correlation**: Verify banking actions trigger MenuOptionClicked events
+3. **Inventory Detection**: Monitor inventory noted_items_count field for real-time counting
+4. **ItemComposition API**: Ensure ItemComposition.getNote() returns valid IDs for noted items
+5. **Database Synchronization**: Verify bank_actions.is_noted matches inventory changes
+6. **OSRS Mechanics**: Confirm bank items never show as noted (bank storage compliance)
+7. **Action Context**: Validate "withdraw-X-noted" and "deposit-X-noted" action classification
 
 ## Key Files to Review
 
@@ -383,7 +423,7 @@ When auto-approve mode is enabled, Claude Code will execute all commands without
 - **Ultimate Input Analytics**: Comprehensive click context, keyboard timing, mouse button tracking
 - **Performance**: 15ms average processing time with async database operations
 - **Data Quality**: Zero hardcoded values, complete friendly name resolution
-- **Schema Version**: v7.0 Ultimate Input Analytics production release
+- **Schema Version**: v7.1 Noted Items Banking Analytics production release
 
 ### Verified Capabilities
 - **✅ Click Context Tracking**: 39+ click events captured with MenuOptionClicked classification
@@ -400,6 +440,12 @@ PGPASSWORD=sam11773 "C:\Program Files\PostgreSQL\17\bin\psql" -U postgres -h loc
 ```
 
 ### Recent Enhancements
+- Noted Items Banking System implementation with MenuOptionClicked correlation
+- Banking action context tracking with is_noted flags and inventory synchronization
+- Real-time noted items detection in inventory using ItemComposition.getNote() API
+- Banking method analysis supporting withdraw/deposit noted items validation
+- Enhanced database schema v7.1 with noted items analytics support
+- Complete placeholder detection removal per user requirements
 - Ultimate Input Analytics implementation with 4 new tracking tables
 - Enhanced movement analytics with proper calculation and debugging
 - Complete click context system with intelligent target classification

@@ -9,6 +9,9 @@ import net.runelite.api.Client;
 import net.runelite.api.Player;
 import net.runelite.client.game.ItemManager;
 import net.runelite.api.ItemComposition;
+import net.runelite.client.plugins.runeliteai.DataStructures.BankData;
+import net.runelite.client.plugins.runeliteai.DataStructures.BankItemData;
+import net.runelite.client.plugins.runeliteai.DataStructures.BankActionData;
 
 import java.sql.*;
 import java.util.*;
@@ -741,8 +744,8 @@ public class DatabaseManager
             "total_items, free_slots, total_quantity, total_value, unique_item_types, " +
             "most_valuable_item_id, most_valuable_item_name, most_valuable_item_quantity, most_valuable_item_value, " +
             "inventory_items, items_added, items_removed, quantity_gained, quantity_lost, value_gained, value_lost, " +
-            "last_item_used_id, last_item_used_name, consumables_used) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            "last_item_used_id, last_item_used_name, consumables_used, noted_items_count) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
             for (int i = 0; i < batch.size(); i++) {
@@ -785,6 +788,9 @@ public class DatabaseManager
                     stmt.setObject(21, inventory.getLastItemId());
                     stmt.setString(22, inventory.getLastItemUsed());
                     stmt.setObject(23, 0); // consumablesUsed not available
+                    
+                    // Noted items tracking
+                    stmt.setObject(24, inventory.getNotedItemsCount() != null ? inventory.getNotedItemsCount() : 0);
                     
                     stmt.addBatch();
                 }
@@ -930,14 +936,15 @@ public class DatabaseManager
     }
     
     /**
-     * Insert world data batch
+     * Insert world data batch - ENHANCED with all database columns
      */
     private void insertWorldDataBatch(Connection conn, List<TickDataCollection> batch, List<Long> tickIds) throws SQLException
     {
         String insertSQL = 
             "INSERT INTO world_environment (session_id, tick_id, tick_number, timestamp, " +
-            "plane, base_x, base_y, nearby_player_count, nearby_npc_count, environment_type) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            "plane, base_x, base_y, nearby_player_count, nearby_npc_count, " +
+            "region_id, chunk_x, chunk_y, environment_type, weather_conditions, lighting_conditions) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
             for (int i = 0; i < batch.size(); i++) {
@@ -945,6 +952,15 @@ public class DatabaseManager
                 Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
                 
                 if (tickData.getWorldData() != null && tickId != null) {
+                    log.debug("[DATABASE-DEBUG] Inserting world environment for tick {}: region={}, chunk=({},{}), environment={}, weather={}, lighting={}", 
+                        tickData.getTickNumber(), 
+                        tickData.getWorldData().getRegionId(),
+                        tickData.getWorldData().getChunkX(),
+                        tickData.getWorldData().getChunkY(),
+                        tickData.getWorldData().getEnvironmentType(),
+                        tickData.getWorldData().getWeatherCondition(),
+                        tickData.getWorldData().getLightingCondition());
+                    
                     stmt.setObject(1, tickData.getSessionId());
                     stmt.setLong(2, tickId);
                     stmt.setObject(3, tickData.getTickNumber());
@@ -954,13 +970,23 @@ public class DatabaseManager
                     stmt.setObject(7, tickData.getWorldData().getBaseY());
                     stmt.setObject(8, tickData.getWorldData().getNearbyPlayerCount());
                     stmt.setObject(9, tickData.getWorldData().getNearbyNPCCount());
-                    stmt.setString(10, tickData.getWorldData().getEnvironmentType()); // environment_type
+                    
+                    // FIXED: Use calculated values directly from WorldEnvironmentData (no more hardcoded fallbacks)
+                    stmt.setObject(10, tickData.getWorldData().getRegionId()); // region_id - FIXED: Now from data structure
+                    stmt.setObject(11, tickData.getWorldData().getChunkX());   // chunk_x - FIXED: Now from data structure
+                    stmt.setObject(12, tickData.getWorldData().getChunkY());   // chunk_y - FIXED: Now from data structure
+                    stmt.setString(13, tickData.getWorldData().getEnvironmentType()); // environment_type
+                    
+                    // FIXED: Use calculated values directly from WorldEnvironmentData
+                    stmt.setString(14, tickData.getWorldData().getWeatherCondition()); // weather_conditions
+                    stmt.setString(15, tickData.getWorldData().getLightingCondition()); // lighting_conditions - FIXED: Now from data structure
                     
                     stmt.addBatch();
                 }
             }
             
-            stmt.executeBatch();
+            int[] results = stmt.executeBatch();
+            log.debug("[DATABASE] World environment batch insert: {} records", results.length);
         }
     }
     
@@ -1387,31 +1413,151 @@ public class DatabaseManager
             stmt.executeBatch();
         }
         
-        // Insert bank data
+        // ENHANCED: Insert bank data with advanced banking analytics
         String bankSQL = "INSERT INTO bank_data (session_id, tick_number, timestamp, " +
-                        "bank_open, unique_items, used_slots, max_slots, total_value) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                        "bank_open, unique_items, used_slots, max_slots, total_value, " +
+                        "current_tab, search_query, bank_interface_type, last_deposit_method, last_withdraw_method, " +
+                        "bank_location_id, search_active, bank_organization_score, tab_switch_count, " +
+                        "total_deposits, total_withdrawals, time_spent_in_bank, recent_deposits, recent_withdrawals) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
-        try (PreparedStatement stmt = conn.prepareStatement(bankSQL)) {
+        try (PreparedStatement stmt = conn.prepareStatement(bankSQL, Statement.RETURN_GENERATED_KEYS)) {
             for (TickDataCollection tickData : batch) {
                 if (tickData.getBankData() != null) {
+                    BankData bankData = tickData.getBankData();
+                    
+                    // Basic bank data
                     stmt.setObject(1, tickData.getSessionId());
                     stmt.setObject(2, tickData.getTickNumber());
                     stmt.setTimestamp(3, new Timestamp(tickData.getTimestamp()));
-                    stmt.setBoolean(4, tickData.getBankData().getBankOpen() != null ? 
-                        tickData.getBankData().getBankOpen() : false);
-                    stmt.setInt(5, tickData.getBankData().getTotalUniqueItems() != null ? 
-                        tickData.getBankData().getTotalUniqueItems() : 0);
-                    stmt.setInt(6, tickData.getBankData().getUsedBankSlots() != null ? 
-                        tickData.getBankData().getUsedBankSlots() : 0);
-                    stmt.setInt(7, tickData.getBankData().getMaxBankSlots() != null ? 
-                        tickData.getBankData().getMaxBankSlots() : 0);
-                    stmt.setLong(8, tickData.getBankData().getTotalBankValue() != null ? 
-                        tickData.getBankData().getTotalBankValue() : 0);
+                    stmt.setBoolean(4, bankData.getBankOpen() != null ? bankData.getBankOpen() : false);
+                    stmt.setInt(5, bankData.getTotalUniqueItems() != null ? bankData.getTotalUniqueItems() : 0);
+                    stmt.setInt(6, bankData.getUsedBankSlots() != null ? bankData.getUsedBankSlots() : 0);
+                    stmt.setInt(7, bankData.getMaxBankSlots() != null ? bankData.getMaxBankSlots() : 0);
+                    stmt.setLong(8, bankData.getTotalBankValue() != null ? bankData.getTotalBankValue() : 0);
+                    
+                    // ENHANCED: Advanced banking features
+                    stmt.setInt(9, bankData.getCurrentTab() != null ? bankData.getCurrentTab() : 0);
+                    stmt.setString(10, bankData.getSearchQuery());
+                    stmt.setString(11, bankData.getBankInterfaceType() != null ? bankData.getBankInterfaceType() : "bank_booth");
+                    stmt.setString(12, bankData.getLastDepositMethod());
+                    stmt.setString(13, bankData.getLastWithdrawMethod());
+                    stmt.setObject(14, bankData.getBankLocationId());
+                    stmt.setBoolean(15, bankData.getSearchActive() != null ? bankData.getSearchActive() : false);
+                    stmt.setFloat(16, bankData.getBankOrganizationScore() != null ? bankData.getBankOrganizationScore() : 0.0f);
+                    stmt.setInt(17, bankData.getTabSwitchCount() != null ? bankData.getTabSwitchCount() : 0);
+                    stmt.setInt(18, bankData.getTotalDeposits() != null ? bankData.getTotalDeposits() : 0);
+                    stmt.setInt(19, bankData.getTotalWithdrawals() != null ? bankData.getTotalWithdrawals() : 0);
+                    stmt.setLong(20, bankData.getTimeSpentInBank() != null ? bankData.getTimeSpentInBank() : 0);
+                    
+                    // Legacy fields
+                    stmt.setInt(21, bankData.getRecentDeposits() != null ? bankData.getRecentDeposits() : 0);
+                    stmt.setInt(22, bankData.getRecentWithdrawals() != null ? bankData.getRecentWithdrawals() : 0);
+                    
                     stmt.addBatch();
                 }
             }
             stmt.executeBatch();
+            
+            // ENHANCED: Get generated bank_data IDs and insert related bank items and actions
+            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                int batchIndex = 0;
+                while (generatedKeys.next()) {
+                    Long bankDataId = generatedKeys.getLong(1);
+                    TickDataCollection tickData = batch.get(batchIndex);
+                    
+                    if (tickData.getBankData() != null) {
+                        // Insert bank items
+                        insertBankItems(conn, bankDataId, tickData);
+                        // Insert bank actions  
+                        insertBankActions(conn, bankDataId, tickData);
+                    }
+                    batchIndex++;
+                }
+            }
+        }
+    }
+    
+    /**
+     * ENHANCED: Insert bank items with detailed metadata and positioning
+     */
+    private void insertBankItems(Connection conn, Long bankDataId, TickDataCollection tickData) throws SQLException {
+        if (tickData.getBankData() == null || tickData.getBankData().getBankItems() == null || 
+            tickData.getBankData().getBankItems().isEmpty()) {
+            return;
+        }
+        
+        String bankItemsSQL = "INSERT INTO bank_items (bank_data_id, session_id, tick_number, " +
+                             "item_id, item_name, quantity, item_value, slot_position, tab_number, " +
+                             "coordinate_x, coordinate_y, is_noted, is_stackable, category, ge_price) " +
+                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(bankItemsSQL)) {
+            for (BankItemData bankItem : tickData.getBankData().getBankItems()) {
+                if (bankItem != null) {
+                    stmt.setLong(1, bankDataId);
+                    stmt.setObject(2, tickData.getSessionId());
+                    stmt.setObject(3, tickData.getTickNumber());
+                    stmt.setInt(4, bankItem.getItemId() != null ? bankItem.getItemId() : 0);
+                    stmt.setString(5, bankItem.getItemName() != null ? bankItem.getItemName() : "Unknown");
+                    stmt.setInt(6, bankItem.getQuantity() != null ? bankItem.getQuantity() : 0);
+                    stmt.setLong(7, bankItem.getItemValue() != null ? bankItem.getItemValue() : 0);
+                    stmt.setInt(8, bankItem.getSlotPosition() != null ? bankItem.getSlotPosition() : 0);
+                    stmt.setInt(9, bankItem.getTabNumber() != null ? bankItem.getTabNumber() : 0);
+                    stmt.setInt(10, bankItem.getCoordinateX() != null ? bankItem.getCoordinateX() : 0);
+                    stmt.setInt(11, bankItem.getCoordinateY() != null ? bankItem.getCoordinateY() : 0);
+                    stmt.setBoolean(12, bankItem.getIsNoted() != null ? bankItem.getIsNoted() : false);
+                    stmt.setBoolean(13, bankItem.getIsStackable() != null ? bankItem.getIsStackable() : false);
+                    stmt.setString(14, bankItem.getCategory() != null ? bankItem.getCategory() : "miscellaneous");
+                    stmt.setInt(15, bankItem.getGePrice() != null ? bankItem.getGePrice() : 0);
+                    stmt.addBatch();
+                }
+            }
+            stmt.executeBatch();
+            
+            log.debug("[BANK-DEBUG] Inserted {} bank items for bank_data_id: {}", 
+                tickData.getBankData().getBankItems().size(), bankDataId);
+        }
+    }
+    
+    /**
+     * ENHANCED: Insert bank actions for transaction history and behavioral analysis
+     */
+    private void insertBankActions(Connection conn, Long bankDataId, TickDataCollection tickData) throws SQLException {
+        if (tickData.getBankData() == null || tickData.getBankData().getRecentActions() == null || 
+            tickData.getBankData().getRecentActions().isEmpty()) {
+            return;
+        }
+        
+        String bankActionsSQL = "INSERT INTO bank_actions (bank_data_id, session_id, tick_number, " +
+                               "action_type, item_id, item_name, quantity, method_used, action_timestamp, " +
+                               "from_tab, to_tab, search_query, duration_ms, is_noted) " +
+                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(bankActionsSQL)) {
+            for (BankActionData bankAction : tickData.getBankData().getRecentActions()) {
+                if (bankAction != null) {
+                    stmt.setLong(1, bankDataId);
+                    stmt.setObject(2, tickData.getSessionId());
+                    stmt.setObject(3, tickData.getTickNumber());
+                    stmt.setString(4, bankAction.getActionType() != null ? bankAction.getActionType() : "unknown");
+                    stmt.setObject(5, bankAction.getItemId());
+                    stmt.setString(6, bankAction.getItemName());
+                    stmt.setObject(7, bankAction.getQuantity());
+                    stmt.setString(8, bankAction.getMethodUsed());
+                    stmt.setLong(9, bankAction.getActionTimestamp() != null ? bankAction.getActionTimestamp() : 0);
+                    stmt.setObject(10, bankAction.getFromTab());
+                    stmt.setObject(11, bankAction.getToTab());
+                    stmt.setString(12, bankAction.getSearchQuery());
+                    stmt.setInt(13, bankAction.getDurationMs() != null ? bankAction.getDurationMs() : 0);
+                    stmt.setBoolean(14, bankAction.getIsNoted() != null ? bankAction.getIsNoted() : false);
+                    stmt.addBatch();
+                }
+            }
+            stmt.executeBatch();
+            
+            log.debug("[BANK-DEBUG] Inserted {} bank actions for bank_data_id: {}", 
+                tickData.getBankData().getRecentActions().size(), bankDataId);
         }
     }
     
@@ -1466,107 +1612,230 @@ public class DatabaseManager
      */
     private void insertWorldObjectsBatch(Connection conn, List<TickDataCollection> batch, List<Long> tickIds) throws SQLException
     {
-        // Insert ground items data
-        String groundItemsSQL = "INSERT INTO ground_items_data (session_id, tick_number, timestamp, " +
+        // Insert ground items data - ENHANCED with distance analytics
+        String groundItemsSQL = "INSERT INTO ground_items_data (session_id, tick_id, tick_number, timestamp, " +
                                "total_items, total_quantity, total_value, unique_item_types, scan_radius, " +
-                               "most_valuable_item_id, most_valuable_item_name, most_valuable_item_quantity, most_valuable_item_value) " +
-                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                               "most_valuable_item_id, most_valuable_item_name, most_valuable_item_quantity, most_valuable_item_value, " +
+                               "closest_item_distance, closest_item_name, closest_valuable_item_distance, closest_valuable_item_name, " +
+                               "my_drops_count, my_drops_total_value, other_player_drops_count, shortest_despawn_time_ms, next_despawn_item_name) " +
+                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement stmt = conn.prepareStatement(groundItemsSQL)) {
-            for (TickDataCollection tickData : batch) {
-                if (tickData.getGroundItems() != null) {
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
+                
+                if (tickData.getGroundItems() != null && tickId != null) {
+                    log.debug("[DATABASE-DEBUG] Inserting ground items for tick {}: {} items, {} value", 
+                        tickData.getTickNumber(), 
+                        tickData.getGroundItems().getTotalItems(),
+                        tickData.getGroundItems().getTotalValue());
+                    
                     stmt.setObject(1, tickData.getSessionId());
-                    stmt.setObject(2, tickData.getTickNumber());
-                    stmt.setTimestamp(3, new Timestamp(tickData.getTimestamp()));
-                    stmt.setInt(4, tickData.getGroundItems().getTotalItems() != null ? 
+                    stmt.setLong(2, tickId); // tick_id - FIXED: Was missing
+                    stmt.setObject(3, tickData.getTickNumber());
+                    stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
+                    stmt.setInt(5, tickData.getGroundItems().getTotalItems() != null ? 
                         tickData.getGroundItems().getTotalItems() : 0);
-                    stmt.setInt(5, tickData.getGroundItems().getTotalQuantity() != null ? 
+                    stmt.setInt(6, tickData.getGroundItems().getTotalQuantity() != null ? 
                         tickData.getGroundItems().getTotalQuantity() : 0);
-                    stmt.setLong(6, tickData.getGroundItems().getTotalValue() != null ? 
+                    stmt.setLong(7, tickData.getGroundItems().getTotalValue() != null ? 
                         tickData.getGroundItems().getTotalValue() : 0);
-                    stmt.setInt(7, tickData.getGroundItems().getUniqueItemTypes() != null ? 
+                    stmt.setInt(8, tickData.getGroundItems().getUniqueItemTypes() != null ? 
                         tickData.getGroundItems().getUniqueItemTypes() : 0);
-                    stmt.setInt(8, tickData.getGroundItems().getScanRadius() != null ? 
+                    stmt.setInt(9, tickData.getGroundItems().getScanRadius() != null ? 
                         tickData.getGroundItems().getScanRadius() : 15);
                     
-                    // Extract most valuable item data from the mostValuableItem string
+                    // ENHANCED: Better most valuable item data extraction
+                    // The mostValuableItem should be a proper name string now from new collection logic
                     String mostValuableItem = tickData.getGroundItems().getMostValuableItem();
-                    if (mostValuableItem != null && mostValuableItem.startsWith("Item_") && !mostValuableItem.equals("None") && !mostValuableItem.equals("Unknown")) {
-                        try {
-                            int itemId = Integer.parseInt(mostValuableItem.substring(5)); // Remove "Item_" prefix
-                            stmt.setInt(9, itemId); // most_valuable_item_id
-                            stmt.setString(10, getItemNameFromId(itemId)); // Use proper name resolution
-                            stmt.setInt(11, 1); // most_valuable_item_quantity (placeholder)
-                            stmt.setLong(12, 0); // most_valuable_item_value (placeholder)
-                        } catch (NumberFormatException e) {
-                            // If parsing fails, set nulls
-                            stmt.setObject(9, null);
+                    if (mostValuableItem != null && !mostValuableItem.equals("None") && !mostValuableItem.equals("Unknown") && !mostValuableItem.isEmpty()) {
+                        // Try to find the most valuable item from the ground items list
+                        if (tickData.getGroundItems().getGroundItems() != null && !tickData.getGroundItems().getGroundItems().isEmpty()) {
+                            // Find the item with highest value from the actual ground items list
+                            var mostValuableGroundItem = tickData.getGroundItems().getGroundItems().stream()
+                                .filter(item -> item != null && item.getTotalValue() != null)
+                                .max((item1, item2) -> Long.compare(item1.getTotalValue(), item2.getTotalValue()));
+                                
+                            if (mostValuableGroundItem.isPresent()) {
+                                var item = mostValuableGroundItem.get();
+                                stmt.setInt(10, item.getItemId() != null ? item.getItemId() : -1);
+                                stmt.setString(11, item.getItemName() != null ? item.getItemName() : "Unknown");
+                                stmt.setInt(12, item.getQuantity() != null ? item.getQuantity() : 1);
+                                stmt.setLong(13, item.getTotalValue() != null ? item.getTotalValue() : 0);
+                            } else {
+                                // No valid most valuable item found
+                                stmt.setObject(10, null);
+                                stmt.setObject(11, null);
+                                stmt.setObject(12, null);
+                                stmt.setObject(13, null);
+                            }
+                        } else {
+                            // No ground items list available
                             stmt.setObject(10, null);
-                            stmt.setObject(11, null);
+                            stmt.setString(11, mostValuableItem); // Store the name we have
                             stmt.setObject(12, null);
+                            stmt.setObject(13, null);
                         }
                     } else {
-                        // No most valuable item or invalid format
-                        stmt.setObject(9, null);
+                        // No most valuable item
                         stmt.setObject(10, null);
                         stmt.setObject(11, null);
                         stmt.setObject(12, null);
+                        stmt.setObject(13, null);
+                    }
+                    
+                    // ENHANCED: Distance analytics fields for ground items
+                    if (tickData.getGroundItems() != null) {
+                        stmt.setObject(14, tickData.getGroundItems().getClosestItemDistance());
+                        stmt.setString(15, tickData.getGroundItems().getClosestItemName());
+                        stmt.setObject(16, tickData.getGroundItems().getClosestValuableItemDistance());
+                        stmt.setString(17, tickData.getGroundItems().getClosestValuableItemName());
+                        stmt.setObject(18, tickData.getGroundItems().getMyDropsCount());
+                        stmt.setObject(19, tickData.getGroundItems().getMyDropsTotalValue());
+                        stmt.setObject(20, tickData.getGroundItems().getOtherPlayerDropsCount());
+                        stmt.setObject(21, tickData.getGroundItems().getShortestDespawnTimeMs());
+                        stmt.setString(22, tickData.getGroundItems().getNextDespawnItemName());
+                    } else {
+                        // No ground items analytics
+                        for (int j = 14; j <= 22; j++) {
+                            stmt.setObject(j, null);
+                        }
                     }
                     
                     stmt.addBatch();
                 }
             }
-            stmt.executeBatch();
+            
+            int[] results = stmt.executeBatch();
+            log.debug("[DATABASE] Ground items batch insert: {} records", results.length);
         }
         
-        // Insert game objects data
-        String gameObjectsSQL = "INSERT INTO game_objects_data (session_id, tick_number, timestamp, " +
+        // Insert game objects data - ENHANCED with distance analytics
+        String gameObjectsSQL = "INSERT INTO game_objects_data (session_id, tick_id, tick_number, timestamp, " +
                                "object_count, unique_object_types, scan_radius, interactable_objects, " +
-                               "closest_object_distance, closest_object_id, closest_object_name) " +
-                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                               "closest_object_distance, closest_object_id, closest_object_name, " +
+                               "closest_bank_distance, closest_bank_name, closest_altar_distance, closest_altar_name, " +
+                               "closest_shop_distance, closest_shop_name, last_clicked_object_distance, " +
+                               "last_clicked_object_name, time_since_last_object_click) " +
+                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement stmt = conn.prepareStatement(gameObjectsSQL)) {
-            for (TickDataCollection tickData : batch) {
-                if (tickData.getGameObjects() != null) {
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
+                
+                if (tickData.getGameObjects() != null && tickId != null) {
+                    log.debug("[DATABASE-DEBUG] Inserting game objects for tick {}: {} objects, closest: {}", 
+                        tickData.getTickNumber(), 
+                        tickData.getGameObjects().getObjectCount(),
+                        tickData.getGameObjects().getClosestObjectName());
+                    
                     stmt.setObject(1, tickData.getSessionId());
-                    stmt.setObject(2, tickData.getTickNumber());
-                    stmt.setTimestamp(3, new Timestamp(tickData.getTimestamp()));
-                    stmt.setInt(4, tickData.getGameObjects().getObjectCount() != null ? 
+                    stmt.setLong(2, tickId); // tick_id - FIXED: Was missing
+                    stmt.setObject(3, tickData.getTickNumber());
+                    stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
+                    stmt.setInt(5, tickData.getGameObjects().getObjectCount() != null ? 
                         tickData.getGameObjects().getObjectCount() : 0);
-                    stmt.setInt(5, tickData.getGameObjects().getUniqueObjectTypes() != null ? 
+                    stmt.setInt(6, tickData.getGameObjects().getUniqueObjectTypes() != null ? 
                         tickData.getGameObjects().getUniqueObjectTypes() : 0);
-                    stmt.setInt(6, tickData.getGameObjects().getScanRadius() != null ? 
+                    stmt.setInt(7, tickData.getGameObjects().getScanRadius() != null ? 
                         tickData.getGameObjects().getScanRadius() : 15);
-                    stmt.setInt(7, tickData.getGameObjects().getInteractableObjectsCount() != null ? 
+                    stmt.setInt(8, tickData.getGameObjects().getInteractableObjectsCount() != null ? 
                         tickData.getGameObjects().getInteractableObjectsCount() : 0);
-                    stmt.setObject(8, tickData.getGameObjects().getClosestObjectDistance());
-                    stmt.setObject(9, tickData.getGameObjects().getClosestObjectId());
-                    stmt.setString(10, tickData.getGameObjects().getClosestObjectName());
+                    stmt.setObject(9, tickData.getGameObjects().getClosestObjectDistance());
+                    stmt.setObject(10, tickData.getGameObjects().getClosestObjectId());
+                    stmt.setString(11, tickData.getGameObjects().getClosestObjectName());
+                    
+                    // ENHANCED: Distance analytics fields
+                    stmt.setObject(12, tickData.getGameObjects().getClosestBankDistance());
+                    stmt.setString(13, tickData.getGameObjects().getClosestBankName());
+                    stmt.setObject(14, tickData.getGameObjects().getClosestAltarDistance());
+                    stmt.setString(15, tickData.getGameObjects().getClosestAltarName());
+                    stmt.setObject(16, tickData.getGameObjects().getClosestShopDistance());
+                    stmt.setString(17, tickData.getGameObjects().getClosestShopName());
+                    stmt.setObject(18, tickData.getGameObjects().getLastClickedObjectDistance());
+                    stmt.setString(19, tickData.getGameObjects().getLastClickedObjectName());
+                    stmt.setObject(20, tickData.getGameObjects().getTimeSinceLastObjectClick());
+                    
                     stmt.addBatch();
                 }
             }
-            stmt.executeBatch();
+            
+            int[] results = stmt.executeBatch();
+            log.debug("[DATABASE] Game objects batch insert: {} records", results.length);
         }
         
-        // Insert projectiles data
-        String projectilesSQL = "INSERT INTO projectiles_data (session_id, tick_number, timestamp, " +
-                               "active_projectiles, unique_projectile_types) " +
-                               "VALUES (?, ?, ?, ?, ?)";
+        // Insert projectiles data - ENHANCED with all database columns
+        String projectilesSQL = "INSERT INTO projectiles_data (session_id, tick_id, tick_number, timestamp, " +
+                               "active_projectiles, unique_projectile_types, most_common_projectile_id, " +
+                               "most_common_projectile_type, combat_projectiles, magic_projectiles) " +
+                               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement stmt = conn.prepareStatement(projectilesSQL)) {
-            for (TickDataCollection tickData : batch) {
-                if (tickData.getProjectiles() != null) {
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
+                
+                if (tickData.getProjectiles() != null && tickId != null) {
+                    log.debug("[DATABASE-DEBUG] Inserting projectiles for tick {}: {} active projectiles", 
+                        tickData.getTickNumber(), 
+                        tickData.getProjectiles().getActiveProjectiles());
+                    
                     stmt.setObject(1, tickData.getSessionId());
-                    stmt.setObject(2, tickData.getTickNumber());
-                    stmt.setTimestamp(3, new Timestamp(tickData.getTimestamp()));
-                    stmt.setInt(4, tickData.getProjectiles().getActiveProjectiles() != null ? 
+                    stmt.setLong(2, tickId); // tick_id - FIXED: Was missing
+                    stmt.setObject(3, tickData.getTickNumber());
+                    stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
+                    stmt.setInt(5, tickData.getProjectiles().getActiveProjectiles() != null ? 
                         tickData.getProjectiles().getActiveProjectiles() : 0);
-                    stmt.setInt(5, tickData.getProjectiles().getUniqueProjectileTypes() != null ? 
+                    stmt.setInt(6, tickData.getProjectiles().getUniqueProjectileTypes() != null ? 
                         tickData.getProjectiles().getUniqueProjectileTypes() : 0);
+                    
+                    // ENHANCED: Add the missing database columns
+                    // Extract most common projectile ID from the most common type string
+                    String mostCommonProjectileType = tickData.getProjectiles().getMostCommonProjectileType();
+                    if (mostCommonProjectileType != null && !mostCommonProjectileType.isEmpty() && 
+                        !mostCommonProjectileType.equals("None") && !mostCommonProjectileType.equals("Unknown")) {
+                        
+                        // Try to extract projectile ID from projectile data
+                        Integer mostCommonProjectileId = null;
+                        if (tickData.getProjectiles().getProjectiles() != null && !tickData.getProjectiles().getProjectiles().isEmpty()) {
+                            // Find the most frequent projectile ID
+                            var projectileFrequency = tickData.getProjectiles().getProjectiles().stream()
+                                .filter(proj -> proj != null && proj.getProjectileId() != null)
+                                .collect(java.util.stream.Collectors.groupingBy(
+                                    proj -> proj.getProjectileId(),
+                                    java.util.stream.Collectors.counting()
+                                ));
+                            
+                            mostCommonProjectileId = projectileFrequency.entrySet().stream()
+                                .max(java.util.Map.Entry.comparingByValue())
+                                .map(java.util.Map.Entry::getKey)
+                                .orElse(null);
+                        }
+                        
+                        stmt.setObject(7, mostCommonProjectileId);
+                        stmt.setString(8, mostCommonProjectileType);
+                    } else {
+                        stmt.setObject(7, null);
+                        stmt.setObject(8, null);
+                    }
+                    
+                    // ENHANCED: Use real combat vs magic projectile classification from enhanced data collection
+                    int combatProjectiles = tickData.getProjectiles().getCombatProjectiles() != null ? 
+                        tickData.getProjectiles().getCombatProjectiles() : 0;
+                    int magicProjectiles = tickData.getProjectiles().getMagicProjectiles() != null ? 
+                        tickData.getProjectiles().getMagicProjectiles() : 0;
+                    
+                    stmt.setInt(9, combatProjectiles);
+                    stmt.setInt(10, magicProjectiles);
+                    
                     stmt.addBatch();
                 }
             }
-            stmt.executeBatch();
+            
+            int[] results = stmt.executeBatch();
+            log.debug("[DATABASE] Projectiles batch insert: {} records", results.length);
         }
     }
     
