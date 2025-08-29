@@ -84,6 +84,9 @@ public class DataCollectionManager
     // Inventory change tracking
     private Map<Integer, Integer> previousInventoryItems = new HashMap<>();
     
+    // Equipment change tracking
+    private Map<String, Integer> previousEquipmentItems = new HashMap<>();
+    
     // Mouse idle time tracking
     private Integer lastMouseX = null;
     private Integer lastMouseY = null;
@@ -438,12 +441,88 @@ public class DataCollectionManager
     {
         ItemContainer equipment = client.getItemContainer(InventoryID.EQUIPMENT);
         if (equipment == null) {
+            log.debug("[EQUIPMENT-DEBUG] Equipment container is NULL - no equipment equipped");
             return PlayerEquipment.builder().build();
         }
         
         Item[] items = equipment.getItems();
         Map<String, Integer> equipmentIds = new HashMap<>();
         
+        // Calculate equipment value and weight (like inventory method)
+        long totalEquipmentValue = 0;
+        int equipmentWeight = client.getWeight(); // Use total player weight from client
+        
+        log.debug("[EQUIPMENT-DEBUG] Starting equipment collection - items.length={}, playerWeight={}", 
+            items != null ? items.length : "null", equipmentWeight);
+        
+        // Calculate equipment stats (total bonuses from all equipped items)
+        int totalAttackSlashBonus = 0;
+        int totalAttackStabBonus = 0;
+        int totalAttackCrushBonus = 0;
+        int totalAttackMagicBonus = 0;
+        int totalAttackRangedBonus = 0;
+        int totalDefenseSlashBonus = 0;
+        int totalDefenseStabBonus = 0;
+        int totalDefenseCrushBonus = 0;
+        int totalDefenseMagicBonus = 0;
+        int totalDefenseRangedBonus = 0;
+        int totalStrengthBonus = 0;
+        int totalRangedStrengthBonus = 0;
+        float totalMagicDamageBonus = 0.0f;
+        int totalPrayerBonus = 0;
+        
+        for (Item item : items) {
+            if (item.getId() > 0) {
+                // Calculate value using ItemManager
+                if (itemManager != null) {
+                    try {
+                        int price = itemManager.getItemPrice(item.getId());
+                        totalEquipmentValue += (long) price * item.getQuantity();
+                    } catch (Exception e) {
+                        // Ignore pricing errors
+                    }
+                }
+                
+                // Note: Individual item weights are not available in ItemComposition
+                // Equipment weight will be calculated from client.getWeight() for total player weight
+                
+                // Calculate equipment stats using ItemManager
+                if (itemManager != null) {
+                    try {
+                        net.runelite.client.game.ItemStats itemStats = itemManager.getItemStats(item.getId());
+                        if (itemStats != null) {
+                            net.runelite.client.game.ItemEquipmentStats equipmentStats = itemStats.getEquipment();
+                            if (equipmentStats != null) {
+                                log.debug("[EQUIPMENT-DEBUG] Found equipment stats for item {}: slash={}, str={}", 
+                                    item.getId(), equipmentStats.getAslash(), equipmentStats.getStr());
+                                totalAttackSlashBonus += equipmentStats.getAslash();
+                                totalAttackStabBonus += equipmentStats.getAstab();
+                                totalAttackCrushBonus += equipmentStats.getAcrush();
+                                totalAttackMagicBonus += equipmentStats.getAmagic();
+                                totalAttackRangedBonus += equipmentStats.getArange();
+                                totalDefenseSlashBonus += equipmentStats.getDslash();
+                                totalDefenseStabBonus += equipmentStats.getDstab();
+                                totalDefenseCrushBonus += equipmentStats.getDcrush();
+                                totalDefenseMagicBonus += equipmentStats.getDmagic();
+                                totalDefenseRangedBonus += equipmentStats.getDrange();
+                                totalStrengthBonus += equipmentStats.getStr();
+                                totalRangedStrengthBonus += equipmentStats.getRstr();
+                                totalMagicDamageBonus += equipmentStats.getMdmg();
+                                totalPrayerBonus += equipmentStats.getPrayer();
+                            } else {
+                                log.debug("[EQUIPMENT-DEBUG] ItemStats found but equipmentStats is NULL for item {}", item.getId());
+                            }
+                        } else {
+                            log.debug("[EQUIPMENT-DEBUG] ItemStats is NULL for item {}", item.getId());
+                        }
+                    } catch (Exception e) {
+                        log.warn("[EQUIPMENT-DEBUG] Error getting equipment stats for item {}: {}", item.getId(), e.getMessage());
+                    }
+                } else {
+                    log.warn("[EQUIPMENT-DEBUG] ItemManager is NULL - cannot get equipment stats");
+                }
+            }
+        }
         
         // Extract individual equipment slot IDs and names
         Integer helmetId = items.length > EquipmentInventorySlot.HEAD.getSlotIdx() && items[EquipmentInventorySlot.HEAD.getSlotIdx()].getId() > 0 ? 
@@ -477,6 +556,53 @@ public class DataCollectionManager
             }
         }
         
+        // Equipment change detection
+        Map<String, Integer> currentEquipment = new HashMap<>();
+        currentEquipment.put("helmet", helmetId);
+        currentEquipment.put("cape", capeId);
+        currentEquipment.put("amulet", amuletId);
+        currentEquipment.put("weapon", weaponId);
+        currentEquipment.put("body", bodyId);
+        currentEquipment.put("shield", shieldId);
+        currentEquipment.put("legs", legsId);
+        currentEquipment.put("gloves", glovesId);
+        currentEquipment.put("boots", bootsId);
+        currentEquipment.put("ring", ringId);
+        currentEquipment.put("ammo", ammoId);
+        
+        // Detect equipment changes
+        int equipmentChangesCount = 0;
+        boolean weaponChanged = false;
+        boolean armorChanged = false;  // helmet, body, legs, gloves, boots
+        boolean accessoryChanged = false; // cape, amulet, shield, ring, ammo
+        
+        for (Map.Entry<String, Integer> entry : currentEquipment.entrySet()) {
+            String slot = entry.getKey();
+            Integer currentId = entry.getValue();
+            Integer previousId = previousEquipmentItems.getOrDefault(slot, -1);
+            
+            if (!currentId.equals(previousId)) {
+                equipmentChangesCount++;
+                
+                // Categorize change type
+                if ("weapon".equals(slot)) {
+                    weaponChanged = true;
+                } else if ("helmet".equals(slot) || "body".equals(slot) || "legs".equals(slot) || 
+                          "gloves".equals(slot) || "boots".equals(slot)) {
+                    armorChanged = true;
+                } else if ("cape".equals(slot) || "amulet".equals(slot) || "shield".equals(slot) || 
+                          "ring".equals(slot) || "ammo".equals(slot)) {
+                    accessoryChanged = true;
+                }
+            }
+        }
+        
+        // Update previous equipment state for next tick
+        previousEquipmentItems = new HashMap<>(currentEquipment);
+        
+        log.debug("[EQUIPMENT-DEBUG] Final equipment stats - totalValue={}, weight={}, attackSlash={}, strength={}, equipChanges={}", 
+            totalEquipmentValue, equipmentWeight, totalAttackSlashBonus, totalStrengthBonus, equipmentChangesCount);
+        
         return PlayerEquipment.builder()
             .equipmentItems(items)
             .equipmentIds(equipmentIds)
@@ -509,6 +635,29 @@ public class DataCollectionManager
             .bootsName(getEquipmentItemName(bootsId))
             .ringName(getEquipmentItemName(ringId))
             .ammoName(getEquipmentItemName(ammoId))
+            // Equipment analytics  
+            .totalEquipmentValue(totalEquipmentValue)
+            .equipmentWeight(equipmentWeight)
+            // Equipment change detection
+            .equipmentChangesCount(equipmentChangesCount)
+            .weaponChanged(weaponChanged)
+            .armorChanged(armorChanged)
+            .accessoryChanged(accessoryChanged)
+            // Equipment stats and bonuses
+            .attackSlashBonus(totalAttackSlashBonus)
+            .attackStabBonus(totalAttackStabBonus)
+            .attackCrushBonus(totalAttackCrushBonus)
+            .attackMagicBonus(totalAttackMagicBonus)
+            .attackRangedBonus(totalAttackRangedBonus)
+            .defenseSlashBonus(totalDefenseSlashBonus)
+            .defenseStabBonus(totalDefenseStabBonus)
+            .defenseCrushBonus(totalDefenseCrushBonus)
+            .defenseMagicBonus(totalDefenseMagicBonus)
+            .defenseRangedBonus(totalDefenseRangedBonus)
+            .strengthBonus(totalStrengthBonus)
+            .rangedStrengthBonus(totalRangedStrengthBonus)
+            .magicDamageBonus(totalMagicDamageBonus)
+            .prayerBonus(totalPrayerBonus)
             .build();
     }
     
@@ -534,6 +683,12 @@ public class DataCollectionManager
         
         log.debug("[INVENTORY-DEBUG] Retrieved {} inventory items from ItemContainer", items != null ? items.length : "null");
         
+        // Track most valuable item
+        int mostValuableItemId = -1;
+        String mostValuableItemName = "";
+        int mostValuableItemQuantity = 0;
+        long mostValuableItemValue = 0;
+        
         // Calculate current inventory state
         for (Item item : items) {
             if (item.getId() > 0) {
@@ -549,7 +704,23 @@ public class DataCollectionManager
                 if (itemManager != null) {
                     try {
                         int price = itemManager.getItemPrice(item.getId());
-                        totalValue += (long) price * item.getQuantity();
+                        long itemTotalValue = (long) price * item.getQuantity();
+                        totalValue += itemTotalValue;
+                        
+                        // Check if this is the most valuable item
+                        if (itemTotalValue > mostValuableItemValue) {
+                            mostValuableItemId = item.getId();
+                            mostValuableItemQuantity = item.getQuantity();
+                            mostValuableItemValue = itemTotalValue;
+                            
+                            // Get item name
+                            try {
+                                ItemComposition itemComp = itemManager.getItemComposition(item.getId());
+                                mostValuableItemName = itemComp != null ? itemComp.getName() : "Unknown Item";
+                            } catch (Exception e) {
+                                mostValuableItemName = "Unknown Item";
+                            }
+                        }
                     } catch (Exception e) {
                         // Ignore pricing errors
                     }
@@ -666,6 +837,12 @@ public class DataCollectionManager
             .freeSlots(28 - usedSlots)
             .totalValue(totalValue)
             .itemCounts(itemCounts)
+            // Most valuable item tracking
+            .mostValuableItemId(mostValuableItemId)
+            .mostValuableItemName(mostValuableItemName)
+            .mostValuableItemQuantity(mostValuableItemQuantity)
+            .mostValuableItemValue(mostValuableItemValue)
+            // Change tracking
             .itemsAdded(itemsAdded)
             .itemsRemoved(itemsRemoved)
             .quantityGained(quantityGained)
@@ -1294,6 +1471,24 @@ public class DataCollectionManager
             // Reset after using it
             lastClickContext = null;
         }
+        
+        // ===== ULTIMATE INPUT ANALYTICS =====
+        // Collect detailed keyboard and mouse analytics from the plugin
+        try {
+            DataStructures.EnhancedInputData enhancedInput = plugin.getEnhancedInputData();
+            if (enhancedInput != null) {
+                builder.keyPressDetails(enhancedInput.getKeyPresses());
+                builder.mouseButtonDetails(enhancedInput.getMouseButtons());
+                builder.keyCombinations(enhancedInput.getKeyCombinations());
+                
+                log.debug("[ULTIMATE-INPUT-DEBUG] Collected {} key presses, {} mouse buttons, {} key combinations", 
+                    enhancedInput.getKeyPresses() != null ? enhancedInput.getKeyPresses().size() : 0,
+                    enhancedInput.getMouseButtons() != null ? enhancedInput.getMouseButtons().size() : 0,
+                    enhancedInput.getKeyCombinations() != null ? enhancedInput.getKeyCombinations().size() : 0);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to collect Ultimate Input Analytics data: {}", e.getMessage());
+        }
     }
     
     /**
@@ -1543,6 +1738,9 @@ public class DataCollectionManager
         try {
             switch (targetType) {
                 case "GAME_OBJECT":
+                    // Use ObjectComposition for game objects
+                    return getObjectName(menuEntry.getIdentifier());
+                    
                 case "GROUND_ITEM":
                 case "INVENTORY_ITEM":
                     // Use ItemManager for items
@@ -1578,6 +1776,22 @@ public class DataCollectionManager
             return itemComp != null ? itemComp.getName() : null;
         } catch (Exception e) {
             log.debug("Failed to get item name for ID {}: {}", itemId, e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Get object name from ID using ObjectComposition
+     */
+    private String getObjectName(int objectId)
+    {
+        if (objectId <= 0 || client == null) return null;
+        
+        try {
+            net.runelite.api.ObjectComposition objectComp = client.getObjectDefinition(objectId);
+            return objectComp != null ? objectComp.getName() : null;
+        } catch (Exception e) {
+            log.debug("Failed to get object name for ID {}: {}", objectId, e.getMessage());
             return null;
         }
     }
@@ -3827,25 +4041,6 @@ public class DataCollectionManager
     private PlayerActiveSpells collectActiveSpellsOptimized()
     {
         return collectActiveSpells(); // TODO: Add varp caching in future
-    }
-    
-    /**
-     * Get object name from object ID using RuneLite API
-     */
-    private String getObjectName(int objectId) {
-        try {
-            if (client != null) {
-                ObjectComposition objectComposition = client.getObjectDefinition(objectId);
-                if (objectComposition != null && objectComposition.getName() != null && !objectComposition.getName().isEmpty()) {
-                    return objectComposition.getName();
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Error getting object name for ID {}: {}", objectId, e.getMessage());
-        }
-        
-        // Fallback to Unknown_ format if name lookup fails
-        return "Unknown_" + objectId;
     }
     
     /**

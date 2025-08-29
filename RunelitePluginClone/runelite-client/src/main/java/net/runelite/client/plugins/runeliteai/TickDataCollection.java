@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.Builder;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import java.util.List;
 
 /**
  * Comprehensive data structure representing all data collected for a single game tick
@@ -74,6 +75,11 @@ public class TickDataCollection
     
     // Click context data
     private DataStructures.ClickContextData clickContext;
+    
+    // ===== ULTIMATE INPUT ANALYTICS =====
+    private List<DataStructures.KeyPressData> keyPressDetails;
+    private List<DataStructures.MouseButtonData> mouseButtonDetails;
+    private List<DataStructures.KeyCombinationData> keyCombinations;
     
     // ===== COMBAT DATA =====
     private DataStructures.CombatData combatData;
@@ -142,6 +148,12 @@ public class TickDataCollection
         count += (movementDistance != null ? 1 : 0);
         count += (movementSpeed != null ? 1 : 0);
         count += (clickContext != null ? clickContext.getDataPointCount() : 0);
+        
+        // Ultimate Input Analytics data points
+        count += (keyPressDetails != null ? keyPressDetails.size() * 10 : 0); // ~10 fields per key press
+        count += (mouseButtonDetails != null ? mouseButtonDetails.size() * 15 : 0); // ~15 fields per mouse button
+        count += (keyCombinations != null ? keyCombinations.size() * 5 : 0); // ~5 fields per combination
+        
         count += (combatData != null ? combatData.getDataPointCount() : 0);
         count += (hitsplatData != null ? hitsplatData.getDataPointCount() : 0);
         count += (animationData != null ? animationData.getDataPointCount() : 0);

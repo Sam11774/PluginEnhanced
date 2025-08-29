@@ -167,13 +167,39 @@ public class DataStructures
         private String ringName;
         private String ammoName;
         
+        // Equipment analytics
+        private Long totalEquipmentValue;
+        private Integer equipmentWeight;
+        
+        // Equipment change detection
+        private Integer equipmentChangesCount;
+        private Boolean weaponChanged;
+        private Boolean armorChanged;
+        private Boolean accessoryChanged;
+        
+        // Equipment stats and bonuses
+        private Integer attackSlashBonus;
+        private Integer attackStabBonus;
+        private Integer attackCrushBonus;
+        private Integer attackMagicBonus;
+        private Integer attackRangedBonus;
+        private Integer defenseSlashBonus;
+        private Integer defenseStabBonus;
+        private Integer defenseCrushBonus;
+        private Integer defenseMagicBonus;
+        private Integer defenseRangedBonus;
+        private Integer strengthBonus;
+        private Integer rangedStrengthBonus;
+        private Float magicDamageBonus;
+        private Integer prayerBonus;
+        
         public int getDataPointCount() { 
-            int count = 27; // weaponTypeId, weaponType, attackStyle, autoRetaliate, combatStyle + 11 IDs + 11 names
+            int count = 47; // weaponTypeId, weaponType, attackStyle, autoRetaliate, combatStyle + 11 IDs + 11 names + totalEquipmentValue + equipmentWeight + equipmentChangesCount + weaponChanged + armorChanged + accessoryChanged + 14 equipment stat bonuses
             count += (equipmentItems != null ? equipmentItems.length : 0);
             count += (equipmentIds != null ? equipmentIds.size() : 0);
             return count;
         }
-        public long getEstimatedSize() { return 64 + (16 * 27) + 
+        public long getEstimatedSize() { return 64 + (16 * 47) + 
             (equipmentItems != null ? equipmentItems.length * 16 : 0) +
             (equipmentIds != null ? equipmentIds.size() * 32 : 0) +
             (weaponType != null ? weaponType.length() * 2 : 0) +
@@ -205,6 +231,12 @@ public class DataStructures
         private String lastItemUsed;
         private Integer lastItemId;
         
+        // Most valuable item tracking
+        private Integer mostValuableItemId;
+        private String mostValuableItemName;
+        private Integer mostValuableItemQuantity;
+        private Long mostValuableItemValue;
+        
         // Change tracking fields (match database schema)
         private Integer itemsAdded;
         private Integer itemsRemoved;
@@ -214,15 +246,16 @@ public class DataStructures
         private Long valueLost;
         
         public int getDataPointCount() {
-            int count = 11; // usedSlots, freeSlots, totalValue, lastItemUsed, lastItemId, itemsAdded, itemsRemoved, quantityGained, quantityLost, valueGained, valueLost
+            int count = 15; // usedSlots, freeSlots, totalValue, lastItemUsed, lastItemId, mostValuableItemId, mostValuableItemName, mostValuableItemQuantity, mostValuableItemValue, itemsAdded, itemsRemoved, quantityGained, quantityLost, valueGained, valueLost
             count += (inventoryItems != null ? inventoryItems.length : 0);
             count += (itemCounts != null ? itemCounts.size() : 0);
             return count;
         }
-        public long getEstimatedSize() { return 64 + (16 * 11) + 
+        public long getEstimatedSize() { return 64 + (16 * 15) + 
             (inventoryItems != null ? inventoryItems.length * 16 : 0) +
             (itemCounts != null ? itemCounts.size() * 32 : 0) +
-            (lastItemUsed != null ? lastItemUsed.length() * 2 : 0); }
+            (lastItemUsed != null ? lastItemUsed.length() * 2 : 0) +
+            (mostValuableItemName != null ? mostValuableItemName.length() * 2 : 0); }
     }
     
     @Data

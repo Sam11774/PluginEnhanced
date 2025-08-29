@@ -91,17 +91,7 @@ echo                    100%% API Coverage Schema
 echo ================================================================
 echo.
 
-REM call :confirm_db_operation "REBUILD" 
-REM if errorlevel 1 goto main_menu
-echo.
-echo Type 'REBUILD' to confirm this operation:
-set /p confirm="> "
-if /i not "%confirm%"=="REBUILD" (
-    echo.
-    echo Operation cancelled.
-    pause
-    goto main_menu
-)
+echo Starting automatic database rebuild...
 
 echo ================================================================
 echo                    REBUILDING DATABASE
@@ -532,15 +522,12 @@ echo         BUILD AND START RUNELITE - CLEAN BUILD + RUN
 echo ================================================================
 echo.
 
-echo This will:
-echo   1. Archive existing logs
-echo   2. Perform a clean build of RuneLite
-echo   3. Start RuneLite immediately upon success
+echo Starting clean build and start process...
+echo   1. Archiving existing logs
+echo   2. Performing clean build of RuneLite
+echo   3. Starting RuneLite immediately upon success
 echo.
-set /p confirm="Continue with clean build and start? (y/n): "
-if /i not "%confirm%"=="y" goto main_menu
 
-echo.
 echo [1/3] Archiving logs before build...
 call :archive_logs
 

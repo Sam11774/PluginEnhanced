@@ -423,6 +423,8 @@ public class DatabaseManager
             insertCombatDataBatch(conn, batch, tickIds);
             insertInputDataBatch(conn, batch, tickIds);
             insertClickContextBatch(conn, batch, tickIds);
+            insertKeyPressDataBatch(conn, batch, tickIds);
+            insertMouseButtonDataBatch(conn, batch, tickIds);
             insertSocialDataBatch(conn, batch, tickIds);
             insertInterfaceDataBatch(conn, batch, tickIds);
             insertSystemMetricsBatch(conn, batch, tickIds);
@@ -645,8 +647,11 @@ public class DatabaseManager
             "helmet_id, cape_id, amulet_id, weapon_id, body_id, shield_id, legs_id, gloves_id, boots_id, ring_id, ammo_id, " +
             "helmet_name, cape_name, amulet_name, weapon_name, body_name, shield_name, legs_name, gloves_name, boots_name, ring_name, ammo_name, " +
             "weapon_type, weapon_category, attack_style, combat_style, total_equipment_value, equipment_weight, " +
-            "equipment_changes_count, weapon_changed, armor_changed, accessory_changed) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            "equipment_changes_count, weapon_changed, armor_changed, accessory_changed, " +
+            "attack_slash_bonus, attack_stab_bonus, attack_crush_bonus, attack_magic_bonus, attack_ranged_bonus, " +
+            "defense_slash_bonus, defense_stab_bonus, defense_crush_bonus, defense_magic_bonus, defense_ranged_bonus, " +
+            "strength_bonus, ranged_strength_bonus, magic_damage_bonus, prayer_bonus) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
             for (int i = 0; i < batch.size(); i++) {
@@ -692,14 +697,30 @@ public class DatabaseManager
                     stmt.setString(28, "Unknown"); // weaponCategory not available
                     stmt.setString(29, equipment.getAttackStyle());
                     stmt.setObject(30, equipment.getCombatStyle()); // This is Integer
-                    stmt.setObject(31, 0L); // totalValue not available
-                    stmt.setObject(32, 0); // equipmentWeight not available
+                    stmt.setObject(31, equipment.getTotalEquipmentValue() != null ? equipment.getTotalEquipmentValue() : 0L); // Equipment value calculated
+                    stmt.setObject(32, equipment.getEquipmentWeight() != null ? equipment.getEquipmentWeight() : 0); // Equipment weight calculated
                     
-                    // Equipment change tracking (not available in current structure)
-                    stmt.setObject(33, 0); // equipmentChanges
-                    stmt.setObject(34, false); // weaponChanged
-                    stmt.setObject(35, false); // armorChanged
-                    stmt.setObject(36, false); // accessoryChanged
+                    // Equipment change tracking (now available with change detection)
+                    stmt.setObject(33, equipment.getEquipmentChangesCount() != null ? equipment.getEquipmentChangesCount() : 0); // equipmentChanges
+                    stmt.setObject(34, equipment.getWeaponChanged() != null ? equipment.getWeaponChanged() : false); // weaponChanged
+                    stmt.setObject(35, equipment.getArmorChanged() != null ? equipment.getArmorChanged() : false); // armorChanged
+                    stmt.setObject(36, equipment.getAccessoryChanged() != null ? equipment.getAccessoryChanged() : false); // accessoryChanged
+                    
+                    // Equipment stats and bonuses (NEW - v7.1)
+                    stmt.setObject(37, equipment.getAttackSlashBonus() != null ? equipment.getAttackSlashBonus() : 0); // attack_slash_bonus
+                    stmt.setObject(38, equipment.getAttackStabBonus() != null ? equipment.getAttackStabBonus() : 0); // attack_stab_bonus
+                    stmt.setObject(39, equipment.getAttackCrushBonus() != null ? equipment.getAttackCrushBonus() : 0); // attack_crush_bonus
+                    stmt.setObject(40, equipment.getAttackMagicBonus() != null ? equipment.getAttackMagicBonus() : 0); // attack_magic_bonus
+                    stmt.setObject(41, equipment.getAttackRangedBonus() != null ? equipment.getAttackRangedBonus() : 0); // attack_ranged_bonus
+                    stmt.setObject(42, equipment.getDefenseSlashBonus() != null ? equipment.getDefenseSlashBonus() : 0); // defense_slash_bonus
+                    stmt.setObject(43, equipment.getDefenseStabBonus() != null ? equipment.getDefenseStabBonus() : 0); // defense_stab_bonus
+                    stmt.setObject(44, equipment.getDefenseCrushBonus() != null ? equipment.getDefenseCrushBonus() : 0); // defense_crush_bonus
+                    stmt.setObject(45, equipment.getDefenseMagicBonus() != null ? equipment.getDefenseMagicBonus() : 0); // defense_magic_bonus
+                    stmt.setObject(46, equipment.getDefenseRangedBonus() != null ? equipment.getDefenseRangedBonus() : 0); // defense_ranged_bonus
+                    stmt.setObject(47, equipment.getStrengthBonus() != null ? equipment.getStrengthBonus() : 0); // strength_bonus
+                    stmt.setObject(48, equipment.getRangedStrengthBonus() != null ? equipment.getRangedStrengthBonus() : 0); // ranged_strength_bonus
+                    stmt.setObject(49, equipment.getMagicDamageBonus() != null ? equipment.getMagicDamageBonus() : 0.0f); // magic_damage_bonus
+                    stmt.setObject(50, equipment.getPrayerBonus() != null ? equipment.getPrayerBonus() : 0); // prayer_bonus
                     
                     stmt.addBatch();
                 }
@@ -743,12 +764,11 @@ public class DatabaseManager
                     stmt.setObject(8, inventory.getTotalValue());
                     stmt.setObject(9, getUniqueItemTypes(inventory.getItemCounts()));
                     
-                    // Most valuable item tracking (calculate from items)
-                    net.runelite.api.Item mostValuable = getMostValuableItem(inventory.getInventoryItems());
-                    stmt.setObject(10, mostValuable != null ? mostValuable.getId() : -1);
-                    stmt.setString(11, mostValuable != null ? getItemNameFromId(mostValuable.getId()) : "None");
-                    stmt.setObject(12, mostValuable != null ? mostValuable.getQuantity() : 0);
-                    stmt.setObject(13, 0L); // mostValuableItemValue not available
+                    // Most valuable item tracking (use calculated values from PlayerInventory)
+                    stmt.setObject(10, inventory.getMostValuableItemId() != null ? inventory.getMostValuableItemId() : -1);
+                    stmt.setString(11, inventory.getMostValuableItemName() != null ? inventory.getMostValuableItemName() : "None");
+                    stmt.setObject(12, inventory.getMostValuableItemQuantity() != null ? inventory.getMostValuableItemQuantity() : 0);
+                    stmt.setObject(13, inventory.getMostValuableItemValue() != null ? inventory.getMostValuableItemValue() : 0L); // mostValuableItemValue now available!
                     
                     // Inventory items as JSONB (convert Item[] to JSON string)
                     stmt.setString(14, convertInventoryItemsToJson(inventory.getInventoryItems()));
@@ -1151,6 +1171,121 @@ public class DatabaseManager
             
             int[] results = stmt.executeBatch();
             log.debug("[CLICK-DB-DEBUG] Inserted {} click context records", results.length);
+        }
+    }
+    
+    /**
+     * Insert key press data batch - Ultimate Input Analytics
+     */
+    private void insertKeyPressDataBatch(Connection conn, List<TickDataCollection> batch, List<Long> tickIds) throws SQLException
+    {
+        String insertSQL = 
+            "INSERT INTO key_presses (session_id, tick_id, tick_number, timestamp, " +
+            "key_code, key_name, key_char, press_timestamp, release_timestamp, duration_ms, " +
+            "is_function_key, is_modifier_key, is_movement_key, is_action_key, " +
+            "ctrl_held, alt_held, shift_held) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
+                
+                if (tickId == null) continue;
+                
+                // Get key press data from the plugin's tracking
+                if (tickData.getKeyPressDetails() != null && !tickData.getKeyPressDetails().isEmpty()) {
+                    for (DataStructures.KeyPressData keyPress : tickData.getKeyPressDetails()) {
+                        stmt.setObject(1, tickData.getSessionId());
+                        stmt.setLong(2, tickId);
+                        stmt.setObject(3, tickData.getTickNumber());
+                        stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
+                        stmt.setInt(5, keyPress.getKeyCode());
+                        stmt.setString(6, keyPress.getKeyName());
+                        stmt.setString(7, keyPress.getKeyChar());
+                        stmt.setLong(8, keyPress.getPressTimestamp());
+                        stmt.setObject(9, keyPress.getReleaseTimestamp());
+                        stmt.setObject(10, keyPress.getDurationMs());
+                        stmt.setBoolean(11, keyPress.getIsFunctionKey() != null ? keyPress.getIsFunctionKey() : false);
+                        stmt.setBoolean(12, keyPress.getIsModifierKey() != null ? keyPress.getIsModifierKey() : false);
+                        stmt.setBoolean(13, keyPress.getIsMovementKey() != null ? keyPress.getIsMovementKey() : false);
+                        stmt.setBoolean(14, keyPress.getIsActionKey() != null ? keyPress.getIsActionKey() : false);
+                        stmt.setBoolean(15, keyPress.getCtrlHeld() != null ? keyPress.getCtrlHeld() : false);
+                        stmt.setBoolean(16, keyPress.getAltHeld() != null ? keyPress.getAltHeld() : false);
+                        stmt.setBoolean(17, keyPress.getShiftHeld() != null ? keyPress.getShiftHeld() : false);
+                        
+                        stmt.addBatch();
+                    }
+                    
+                    log.debug("[KEY-DB-DEBUG] Prepared {} key press records for batch", 
+                        tickData.getKeyPressDetails().size());
+                }
+            }
+            
+            int[] results = stmt.executeBatch();
+            if (results.length > 0) {
+                log.debug("[KEY-DB-DEBUG] Inserted {} key press records", results.length);
+            }
+        }
+    }
+    
+    /**
+     * Insert mouse button data batch - Ultimate Input Analytics
+     */
+    private void insertMouseButtonDataBatch(Connection conn, List<TickDataCollection> batch, List<Long> tickIds) throws SQLException
+    {
+        String insertSQL = 
+            "INSERT INTO mouse_buttons (session_id, tick_id, tick_number, timestamp, " +
+            "button_type, button_code, press_timestamp, release_timestamp, duration_ms, " +
+            "press_x, press_y, release_x, release_y, is_click, is_drag, " +
+            "is_camera_rotation, camera_start_pitch, camera_start_yaw, " +
+            "camera_end_pitch, camera_end_yaw, rotation_distance) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long tickId = i < tickIds.size() ? tickIds.get(i) : null;
+                
+                if (tickId == null) continue;
+                
+                // Get mouse button data from the plugin's tracking
+                if (tickData.getMouseButtonDetails() != null && !tickData.getMouseButtonDetails().isEmpty()) {
+                    for (DataStructures.MouseButtonData mouseButton : tickData.getMouseButtonDetails()) {
+                        stmt.setObject(1, tickData.getSessionId());
+                        stmt.setLong(2, tickId);
+                        stmt.setObject(3, tickData.getTickNumber());
+                        stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
+                        stmt.setString(5, mouseButton.getButtonType());
+                        stmt.setInt(6, mouseButton.getButtonCode());
+                        stmt.setLong(7, mouseButton.getPressTimestamp());
+                        stmt.setObject(8, mouseButton.getReleaseTimestamp());
+                        stmt.setObject(9, mouseButton.getDurationMs());
+                        stmt.setObject(10, mouseButton.getPressX());
+                        stmt.setObject(11, mouseButton.getPressY());
+                        stmt.setObject(12, mouseButton.getReleaseX());
+                        stmt.setObject(13, mouseButton.getReleaseY());
+                        stmt.setBoolean(14, mouseButton.getIsClick() != null ? mouseButton.getIsClick() : false);
+                        stmt.setBoolean(15, mouseButton.getIsDrag() != null ? mouseButton.getIsDrag() : false);
+                        stmt.setBoolean(16, mouseButton.getIsCameraRotation() != null ? mouseButton.getIsCameraRotation() : false);
+                        stmt.setObject(17, mouseButton.getCameraStartPitch());
+                        stmt.setObject(18, mouseButton.getCameraStartYaw());
+                        stmt.setObject(19, mouseButton.getCameraEndPitch());
+                        stmt.setObject(20, mouseButton.getCameraEndYaw());
+                        stmt.setObject(21, mouseButton.getRotationDistance());
+                        
+                        stmt.addBatch();
+                    }
+                    
+                    log.debug("[MOUSE-DB-DEBUG] Prepared {} mouse button records for batch", 
+                        tickData.getMouseButtonDetails().size());
+                }
+            }
+            
+            int[] results = stmt.executeBatch();
+            if (results.length > 0) {
+                log.debug("[MOUSE-DB-DEBUG] Inserted {} mouse button records", results.length);
+            }
         }
     }
     
