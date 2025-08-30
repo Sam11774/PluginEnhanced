@@ -437,6 +437,8 @@ public class PerformanceMonitor
             .build();
     }
     
+    // Click intelligence performance tracking removed - using existing metrics
+    
     /**
      * Internal class for GC metrics
      */

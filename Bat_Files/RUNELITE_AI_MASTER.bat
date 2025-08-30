@@ -257,6 +257,7 @@ set /p search_tag="Tag: "
 if /i "%search_tag%"=="all" (
     echo.
     echo All Tagged Sessions:
+
     echo.
     echo Session ID ^| Player Name   ^| Activity Type ^| Start Time          ^| Ticks ^| Tags
     echo -----------^|---------------^|---------------^|---------------------^|-------^|-------------

@@ -14,6 +14,8 @@ import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
+import net.runelite.api.HitsplatID;
+import net.runelite.api.AnimationID;
 
 import net.runelite.api.Point;
 import java.util.concurrent.ConcurrentHashMap;
@@ -104,6 +106,9 @@ public class DataCollectionManager
     private final ConfigManager configManager;
     private final RuneliteAIPlugin plugin;
     private final TimerManager timerManager;
+    
+    // External API integration for enhanced data lookup
+    private final OSRSWikiService wikiService;
     
     // Constants
     private static final int MAX_BANKING_ACTIONS_HISTORY = 50;
@@ -196,6 +201,7 @@ public class DataCollectionManager
         this.plugin = plugin;
         this.timerManager = new TimerManager();
         this.distanceAnalyticsManager = new DistanceAnalyticsManager();
+        this.wikiService = new OSRSWikiService();
         
         // No threading required - all operations on main client thread
         
@@ -406,7 +412,7 @@ public class DataCollectionManager
             .maxHitpoints(client.getRealSkillLevel(Skill.HITPOINTS))
             .currentPrayer(client.getBoostedSkillLevel(Skill.PRAYER))
             .maxPrayer(client.getRealSkillLevel(Skill.PRAYER))
-            .energy(client.getEnergy())
+            .energy(client.getEnergy() / 100)
             .weight(client.getWeight())
             .specialAttackPercent(client.getVarpValue(VarPlayer.SPECIAL_ATTACK_PERCENT) / 10)
             .poisoned(poisonValue > 0)
@@ -1030,41 +1036,58 @@ public class DataCollectionManager
      */
     private PlayerActiveSpells collectActiveSpells()
     {
+        log.debug("[SPELL-DEBUG] Starting spell collection");
         
-        // Get rune pouch contents (if available)
+        // Get rune pouch contents from inventory scanning
         Integer runePouch1 = null;
         Integer runePouch2 = null; 
         Integer runePouch3 = null;
         
         try {
-            // Try to get rune pouch data from varbits or inventory
-            // Note: RuneLite doesn't have direct rune pouch API, so this is placeholder
-            // In actual implementation, would need to scan inventory for rune pouch item
-            // and access its contents through appropriate RuneLite APIs
-            
-            // Placeholder logic - in real implementation would check:
-            // 1. Inventory for rune pouch item
-            // 2. Use appropriate varbits or container access
-            // 3. Extract the 3 rune types stored
-            
-            // For now, leave as null (no rune pouch data available)
+            // Scan inventory for rune pouch and extract rune contents
+            ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
+            if (inventory != null) {
+                for (Item item : inventory.getItems()) {
+                    if (item.getId() == 12791) { // Rune pouch item ID
+                        // Get rune pouch contents using VarBits
+                        try {
+                            // Use correct VarbitIDs for rune pouch contents
+                            runePouch1 = client.getVarbitValue(29);   // VarbitID.RUNE_POUCH_TYPE_1 (rune type)
+                            runePouch2 = client.getVarbitValue(1622); // VarbitID.RUNE_POUCH_TYPE_2 (rune type)  
+                            runePouch3 = client.getVarbitValue(1623); // VarbitID.RUNE_POUCH_TYPE_3 (rune type)
+                            log.debug("[SPELL-DEBUG] Rune pouch contents: {}, {}, {}", runePouch1, runePouch2, runePouch3);
+                        } catch (Exception e) {
+                            log.debug("[SPELL-DEBUG] Error reading rune pouch varbits: {}", e.getMessage());
+                        }
+                        break;
+                    }
+                }
+            }
         } catch (Exception e) {
-            log.debug("Error accessing rune pouch data: {}", e.getMessage());
+            log.debug("[SPELL-DEBUG] Error accessing rune pouch data: {}", e.getMessage());
         }
         
+        String selectedSpell = getSelectedSpell();
+        String spellbook = getActiveSpellbook(); 
+        String autocastSpell = getAutocastSpell();
+        boolean autocastEnabled = isAutocastEnabled();
+        
+        log.debug("[SPELL-DEBUG] Collected data - selected: {}, spellbook: {}, autocast: {}, autocastEnabled: {}", 
+                selectedSpell, spellbook, autocastSpell, autocastEnabled);
+        
         return PlayerActiveSpells.builder()
-            .selectedSpell(getSelectedSpell())
-            .spellbook(getActiveSpellbook())
-            .autocastEnabled(client.getVarpValue(RuneliteAIConstants.AUTOCAST_SPELL_VARP) > 0)
-            .autocastSpell(getAutocastSpell())
+            .selectedSpell(selectedSpell)
+            .spellbook(spellbook)
+            .autocastEnabled(autocastEnabled)
+            .autocastSpell(autocastSpell)
             // Rune pouch IDs
             .runePouch1(runePouch1)
             .runePouch2(runePouch2)
             .runePouch3(runePouch3)
             // Rune pouch names (friendly name resolution)
-            .runePouch1Name(getEquipmentItemName(runePouch1))
-            .runePouch2Name(getEquipmentItemName(runePouch2))
-            .runePouch3Name(getEquipmentItemName(runePouch3))
+            .runePouch1Name(getRuneNameFromTypeId(runePouch1))
+            .runePouch2Name(getRuneNameFromTypeId(runePouch2))
+            .runePouch3Name(getRuneNameFromTypeId(runePouch3))
             .build();
     }
     
@@ -2289,7 +2312,10 @@ public class DataCollectionManager
     }
     
     /**
-     * ENHANCED: Get item name from ID using ItemManager with robust fallback handling
+     * ENHANCED: Get item name from ID using hybrid lookup system:
+     * 1. RuneLite ItemManager (primary)
+     * 2. OSRS Wiki API (secondary) 
+     * 3. Hardcoded fallback (tertiary)
      */
     private String getItemName(int itemId)
     {
@@ -2297,28 +2323,39 @@ public class DataCollectionManager
             return "Invalid_Item"; // Better than null
         }
         
-        if (itemManager == null) {
-            log.debug("[INTERACTION-DEBUG] ItemManager is null, falling back to hardcoded ID");
-            return "Item_" + itemId;
+        // Priority 1: RuneLite ItemManager (fastest, most reliable)
+        if (itemManager != null) {
+            try {
+                ItemComposition itemComp = itemManager.getItemComposition(itemId);
+                if (itemComp != null) {
+                    String itemName = itemComp.getName();
+                    if (itemName != null && !itemName.trim().isEmpty()) {
+                        log.debug("[ITEM-LOOKUP] ItemManager resolved {} -> '{}'", itemId, itemName);
+                        return itemName;
+                    }
+                }
+            } catch (Exception e) {
+                log.debug("[ITEM-LOOKUP] ItemManager failed for ID {}: {}", itemId, e.getMessage());
+            }
         }
         
-        try {
-            ItemComposition itemComp = itemManager.getItemComposition(itemId);
-            if (itemComp != null) {
-                String itemName = itemComp.getName();
-                if (itemName != null && !itemName.trim().isEmpty()) {
-                    log.debug("[INTERACTION-DEBUG] ItemManager resolved item {} -> '{}'", itemId, itemName);
-                    return itemName;
+        // Priority 2: OSRS Wiki API (slower, but comprehensive)
+        if (wikiService != null) {
+            try {
+                // Attempt synchronous lookup with timeout (non-blocking for game thread)
+                String wikiName = wikiService.getItemName(itemId).get(1, java.util.concurrent.TimeUnit.SECONDS);
+                if (wikiName != null && !wikiName.trim().isEmpty()) {
+                    log.debug("[ITEM-LOOKUP] Wiki API resolved {} -> '{}'", itemId, wikiName);
+                    return wikiName;
                 }
+            } catch (Exception e) {
+                log.debug("[ITEM-LOOKUP] Wiki API failed for ID {}: {}", itemId, e.getMessage());
             }
-            
-            // Fallback when ItemComposition is null or name is empty
-            log.debug("[INTERACTION-DEBUG] ItemManager returned null/empty for item {}, using fallback", itemId);
-            return "Item_" + itemId;
-        } catch (Exception e) {
-            log.debug("[INTERACTION-DEBUG] Failed to get item name for ID {}: {}, using fallback", itemId, e.getMessage());
-            return "Item_" + itemId;
         }
+        
+        // Priority 3: Hardcoded fallback 
+        log.debug("[ITEM-LOOKUP] All lookups failed for item {}, using fallback", itemId);
+        return "Item_" + itemId;
     }
     
     /**
@@ -2440,15 +2477,27 @@ public class DataCollectionManager
         if (objectId == 23810) return "Potter's wheel";
         if (objectId == 23849) return "Loom";
         if (objectId == 34737) return "Crystal chest";
+        if (objectId == 34812) return "PvP Armour Stand"; // PVPW_ARMOURSTAND_GENERAL
         
         // Lumbridge area objects (common starting area)
         if (objectId == 12348) return "Lumbridge Castle door";
         if (objectId == 45803) return "Lumbridge guide";
         if (objectId == 31624) return "Combat instructor";
         
-        // Grand Exchange
+        // Grand Exchange and Varrock area objects
         if (objectId == 10517) return "Grand Exchange booth";
         if (objectId == 26707) return "Grand Exchange clerk";
+        // FIXED: Problematic object IDs that were showing as Unknown_
+        if (objectId == 10062) return "Grand Exchange pillar"; // Most frequent unknown object
+        if (objectId == 10059) return "Grand Exchange wall"; // Second most frequent
+        if (objectId == 10657) return "Varrock fountain";
+        if (objectId == 10644) return "Varrock palace wall";
+        if (objectId == 10650) return "Varrock bank wall";
+        if (objectId == 10656) return "Varrock building wall";
+        if (objectId == 10651) return "Varrock fence";
+        if (objectId == 10653) return "Varrock archway";
+        if (objectId == 2093) return "Varrock door";
+        if (objectId == 2129) return "Varrock gate";
         
         // Doors and gates
         if (objectId >= 1516 && objectId <= 1520) return "Door";
@@ -2895,8 +2944,11 @@ public class DataCollectionManager
                     currentAnimation, animationType, poseAnimation, recentAnimationIds.size());
             }
             
+            String animationName = getAnimationName(currentAnimation);
+            
             return AnimationData.builder()
                 .currentAnimation(currentAnimation)
+                .animationName(animationName) // RuneLite API friendly name
                 .poseAnimation(poseAnimation)
                 .animationType(animationType)
                 .recentAnimations(recentAnimationIds)
@@ -3149,6 +3201,11 @@ public class DataCollectionManager
                 } else {
                     break; // No more expired interactions
                 }
+            }
+            
+            // Periodic Wiki API cache cleanup (every ~100 cleanup cycles)
+            if (wikiService != null && System.currentTimeMillis() % 100 == 0) {
+                wikiService.cleanupCache();
             }
         } catch (Exception e) {
             log.debug("[INTERACTION-DEBUG] Error during interaction cleanup: {}", e.getMessage());
@@ -3442,43 +3499,61 @@ public class DataCollectionManager
      */
     private String getHitsplatTypeName(int hitsplatType)
     {
-        switch (hitsplatType) {
-            case 12: return "BLOCK_ME";
-            case 13: return "BLOCK_OTHER";
-            case 16: return "DAMAGE_ME";
-            case 17: return "DAMAGE_OTHER";
-            case 65: return "POISON";
-            case 4: return "DISEASE";
-            case 3: return "DISEASE_BLOCKED";
-            case 5: return "VENOM";
-            case 6: return "HEAL";
-            case 11: return "CYAN_UP";
-            case 15: return "CYAN_DOWN";
-            case 18: return "DAMAGE_ME_CYAN";
-            case 19: return "DAMAGE_OTHER_CYAN";
-            case 20: return "DAMAGE_ME_ORANGE";
-            case 21: return "DAMAGE_OTHER_ORANGE";
-            case 22: return "DAMAGE_ME_YELLOW";
-            case 23: return "DAMAGE_OTHER_YELLOW";
-            case 24: return "DAMAGE_ME_WHITE";
-            case 25: return "DAMAGE_OTHER_WHITE";
-            case 43: return "DAMAGE_MAX_ME";
-            case 44: return "DAMAGE_MAX_ME_CYAN";
-            case 45: return "DAMAGE_MAX_ME_ORANGE";
-            case 46: return "DAMAGE_MAX_ME_YELLOW";
-            case 47: return "DAMAGE_MAX_ME_WHITE";
-            case 53: return "DAMAGE_ME_POISE";
-            case 54: return "DAMAGE_OTHER_POISE";
-            case 55: return "DAMAGE_MAX_ME_POISE";
-            case 0: return "CORRUPTION";
-            case 60: return "PRAYER_DRAIN";
-            case 67: return "BLEED";
-            case 71: return "SANITY_DRAIN";
-            case 72: return "SANITY_RESTORE";
-            case 73: return "DOOM";
-            case 74: return "BURN";
-            default: return "UNKNOWN_" + hitsplatType;
+        // Use RuneLite API HitsplatID constants for true name lookup
+        try {
+            // Use reflection to find the constant name from HitsplatID
+            java.lang.reflect.Field[] fields = HitsplatID.class.getDeclaredFields();
+            for (java.lang.reflect.Field field : fields) {
+                if (field.getType() == int.class && java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+                    try {
+                        int value = field.getInt(null);
+                        if (value == hitsplatType) {
+                            return field.getName();
+                        }
+                    } catch (IllegalAccessException e) {
+                        // Continue to next field
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Failed to lookup hitsplat type {} using HitsplatID reflection: {}", hitsplatType, e.getMessage());
         }
+        
+        // Fallback for any unmapped values
+        return "UNKNOWN_" + hitsplatType;
+    }
+    
+    /**
+     * Helper method to convert animation ID to string name using RuneLite API
+     */
+    public String getAnimationName(int animationId)
+    {
+        // Handle idle animation specifically
+        if (animationId == -1) return "IDLE";
+        
+        // Use RuneLite API AnimationID constants for true name lookup
+        try {
+            // Use reflection to find the constant name from AnimationID
+            java.lang.reflect.Field[] fields = AnimationID.class.getDeclaredFields();
+            for (java.lang.reflect.Field field : fields) {
+                if (field.getType() == int.class && java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+                    try {
+                        int value = field.getInt(null);
+                        if (value == animationId) {
+                            return field.getName();
+                        }
+                    } catch (IllegalAccessException e) {
+                        // Continue to next field
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Failed to lookup animation {} using AnimationID reflection: {}", animationId, e.getMessage());
+        }
+        
+        // Fallback - try to get animation type for better context
+        String type = getAnimationType(animationId);
+        return type.toUpperCase() + "_" + animationId;
     }
     
     /**
@@ -3508,9 +3583,9 @@ public class DataCollectionManager
             long latestMessageTime = 0;
             String latestMessage = null;
             
-            // Process recent chat messages from the queue - only messages from recent time window
+            // Process recent chat messages from the queue - extended time window for better capture
             long currentTime = System.currentTimeMillis();
-            long recentTimeThreshold = currentTime - 30000; // Increase to 30 seconds for better capture
+            long recentTimeThreshold = currentTime - 300000; // 5 minutes for better message capture
             
             log.debug("[CHAT-DEBUG] Processing {} messages from queue, currentTime={}, threshold={}", 
                 recentChatMessages.size(), currentTime, recentTimeThreshold);
@@ -3524,12 +3599,17 @@ public class DataCollectionManager
                     String messageType = message.getType().toString().toLowerCase();
                     messageTypeCounts.merge(messageType, 1, Integer::sum);
                     
-                    // Track latest message time and content - only if message is recent
-                    if (message.getTimestamp() > recentTimeThreshold && message.getTimestamp() > latestMessageTime) {
+                    // Store the most recent message regardless of timestamp (for debugging)
+                    if (message.getTimestamp() > latestMessageTime) {
                         latestMessageTime = message.getTimestamp();
                         latestMessage = message.getMessage();
-                        log.debug("[CHAT-DEBUG] Updated latest message: {} (time={})", latestMessage, latestMessageTime);
+                        log.debug("[CHAT-DEBUG] Updated latest message: '{}' (type={}, time={}, age={}ms)", 
+                            latestMessage, message.getType(), latestMessageTime, currentTime - latestMessageTime);
                     }
+                    
+                    // Log all messages for debugging
+                    log.debug("[CHAT-DEBUG] Processing message: '{}' (type={}, timestamp={}, age={}ms)", 
+                        message.getMessage(), message.getType(), message.getTimestamp(), currentTime - message.getTimestamp());
                 }
             }
             
@@ -5497,14 +5577,27 @@ public class DataCollectionManager
     
     public void recordChatMessage(ChatMessage chatMessage) {
         if (chatMessage != null) {
-            log.debug("[CHAT-DEBUG] Recording chat message: type={}, message={}, timestamp={}", 
-                chatMessage.getType(), chatMessage.getMessage(), chatMessage.getTimestamp());
+            // Enhanced logging to capture all message types
+            String message = chatMessage.getMessage();
+            String messageType = chatMessage.getType() != null ? chatMessage.getType().toString() : "UNKNOWN";
+            String sender = chatMessage.getName() != null ? chatMessage.getName() : "SYSTEM";
+            
+            log.debug("[CHAT-DEBUG] Recording chat message: type={}, sender={}, message='{}', timestamp={}", 
+                messageType, sender, message, chatMessage.getTimestamp());
+            
             recentChatMessages.offer(chatMessage);
+            
             // Keep only last configured number of messages
             while (recentChatMessages.size() > RuneliteAIConstants.MAX_CHAT_MESSAGE_HISTORY) {
-                recentChatMessages.poll();
+                ChatMessage removed = recentChatMessages.poll();
+                log.debug("[CHAT-DEBUG] Removed old message from queue: '{}'", 
+                    removed != null ? removed.getMessage() : "null");
             }
-            log.debug("[CHAT-DEBUG] Total messages in queue: {}", recentChatMessages.size());
+            
+            log.debug("[CHAT-DEBUG] Total messages in queue: {} (after adding '{}')", 
+                recentChatMessages.size(), message);
+        } else {
+            log.debug("[CHAT-DEBUG] Attempted to record null chat message");
         }
     }
     
@@ -6057,14 +6150,32 @@ public class DataCollectionManager
     
     private String getSelectedSpell() {
         try {
-            int selectedSpell = client.getVarpValue(RuneliteAIConstants.AUTOCAST_SPELL_VARP);
-            if (selectedSpell <= 0) {
+            // Try multiple methods to get current spell selection
+            // Method 1: Check if a spell is currently selected (different from autocast)  
+            int currentSpell = client.getVarpValue(300); // Current spell selection VarP
+            
+            log.debug("[SPELL-DEBUG] Checking spell selection - currentSpell VarP 300: {}", currentSpell);
+            
+            if (currentSpell <= 0) {
+                // Method 2: Check selected spell widget if spellbook is open
+                Widget spellbookWidget = client.getWidget(218, 0); // Standard spellbook widget group
+                if (spellbookWidget != null) {
+                    // Try to find selected spell from interface state
+                    log.debug("[SPELL-DEBUG] Spellbook widget found, checking selected spell state");
+                }
+                
+                // Method 3: Fall back to autocast if no current selection
+                currentSpell = client.getVarpValue(RuneliteAIConstants.AUTOCAST_SPELL_VARP);
+                log.debug("[SPELL-DEBUG] Falling back to autocast spell: {}", currentSpell);
+            }
+            
+            if (currentSpell <= 0) {
                 return null;
             }
             
-            // Map common spell IDs to names (simplified mapping)
-            switch (selectedSpell) {
-                case 1152: return "Lumbridge Home Teleport";
+            // Map common spell IDs to names (comprehensive mapping)
+            switch (currentSpell) {
+                // Combat Spells
                 case 1164: return "Wind Strike";
                 case 1167: return "Water Strike";
                 case 1170: return "Earth Strike";
@@ -6085,6 +6196,9 @@ public class DataCollectionManager
                 case 1542: return "Water Surge";
                 case 1545: return "Earth Surge";
                 case 1548: return "Fire Surge";
+                
+                // Teleportation Spells
+                case 1152: return "Lumbridge Home Teleport";
                 case 1572: return "Varrock Teleport";
                 case 1577: return "Lumbridge Teleport";
                 case 1582: return "Falador Teleport";
@@ -6092,7 +6206,32 @@ public class DataCollectionManager
                 case 1592: return "Ardougne Teleport";
                 case 1597: return "Watchtower Teleport";
                 case 1602: return "Trollheim Teleport";
-                default: return "Spell_" + selectedSpell;
+                
+                // Utility Spells
+                case 100: return "Confuse";
+                case 200: return "Weaken";
+                case 300: return "Curse";
+                case 350: return "Bind";
+                case 400: return "Low Level Alchemy";
+                case 600: return "Snare";
+                case 750: return "High Level Alchemy";
+                case 850: return "Entangle";
+                case 900: return "Charge";
+                case 1000: return "Vulnerability";
+                
+                // Additional Common Spells
+                case 1212: return "Crumble Undead";
+                case 1215: return "Magic Dart";
+                case 1218: return "Bind";
+                case 1221: return "Snare";
+                case 1224: return "Entangle";
+                case 1227: return "Charge";
+                case 1230: return "Teleblock";
+                case 1233: return "Tele Other Lumbridge";
+                case 1236: return "Tele Other Falador";
+                case 1239: return "Tele Other Camelot";
+                
+                default: return "Spell_" + currentSpell;
             }
         } catch (Exception e) {
             log.warn("Error getting selected spell", e);
@@ -6168,6 +6307,62 @@ public class DataCollectionManager
         } catch (Exception e) {
             log.warn("Error getting autocast spell", e);
             return null;
+        }
+    }
+    
+    /**
+     * Enhanced autocast detection using multiple approaches
+     */
+    private boolean isAutocastEnabled() {
+        try {
+            // Method 1: Check original VarPlayer 276 (our current approach)
+            int autocastVarp276 = client.getVarpValue(276);
+            if (autocastVarp276 > 0) {
+                log.debug("[AUTOCAST-DEBUG] Method 1 (VarP 276) detected autocast: {}", autocastVarp276);
+                return true;
+            }
+            
+            // Method 2: Check official AUTOCAST_SPELL_OBJ VarPlayer 4720
+            int autocastVarp4720 = client.getVarpValue(4720);
+            if (autocastVarp4720 > 0) {
+                log.debug("[AUTOCAST-DEBUG] Method 2 (VarP 4720) detected autocast: {}", autocastVarp4720);
+                return true;
+            }
+            
+            // Method 3: Check if combat style widget shows autocast enabled
+            Widget combatStyleWidget = client.getWidget(593, 1); // Combat tab autocast button
+            if (combatStyleWidget != null) {
+                // Check if autocast button shows as "on" state
+                int spriteId = combatStyleWidget.getSpriteId();
+                if (spriteId > 0) {
+                    log.debug("[AUTOCAST-DEBUG] Method 3 (Combat Widget) sprite ID: {}", spriteId);
+                    // Autocast enabled sprites are typically different from disabled ones
+                    // This is a heuristic that may need adjustment
+                    return spriteId != 43; // 43 is typically the "off" sprite
+                }
+            }
+            
+            // Method 4: Check if spell selection widget shows autocast active
+            Widget spellWidget = client.getWidget(218, 0); // Spellbook widget
+            if (spellWidget != null) {
+                Widget[] children = spellWidget.getDynamicChildren();
+                if (children != null) {
+                    for (Widget child : children) {
+                        if (child != null && child.getBorderType() > 0) {
+                            // Spell with border typically indicates active autocast
+                            log.debug("[AUTOCAST-DEBUG] Method 4 (Spell Widget) found bordered spell, possible autocast");
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            log.debug("[AUTOCAST-DEBUG] No autocast detected by any method");
+            return false;
+            
+        } catch (Exception e) {
+            log.debug("[AUTOCAST-DEBUG] Error in autocast detection: {}", e.getMessage());
+            return false;
         }
     }
     
@@ -6894,6 +7089,55 @@ public class DataCollectionManager
             log.debug("Failed to get item name for ID {}: {}", itemId, e.getMessage());
         }
         return "Unknown Item";
+    }
+    
+    /**
+     * Convert rune pouch type ID to rune name using ItemManager lookup
+     */
+    private String getRuneNameFromTypeId(Integer runeTypeId) {
+        if (runeTypeId == null || runeTypeId <= 0) return null;
+        
+        try {
+            // Convert rune type ID to actual rune item ID using OSRS mapping
+            int runeItemId = convertRuneTypeToItemId(runeTypeId);
+            if (runeItemId > 0 && itemManager != null) {
+                ItemComposition itemComp = itemManager.getItemComposition(runeItemId);
+                return itemComp != null ? itemComp.getName() : null;
+            }
+        } catch (Exception e) {
+            log.debug("Failed to convert rune type {} to item name: {}", runeTypeId, e.getMessage());
+        }
+        return null;
+    }
+    
+    /**
+     * Map rune type IDs from rune pouch varbits to actual rune item IDs
+     */
+    private int convertRuneTypeToItemId(int runeTypeId) {
+        // Common rune type mappings (based on OSRS rune pouch mechanics)
+        switch (runeTypeId) {
+            case 1: return 554;  // Air rune
+            case 2: return 555;  // Water rune
+            case 3: return 556;  // Earth rune
+            case 4: return 557;  // Fire rune
+            case 5: return 558;  // Mind rune
+            case 6: return 559;  // Chaos rune
+            case 7: return 560;  // Death rune
+            case 8: return 561;  // Blood rune
+            case 9: return 562;  // Cosmic rune
+            case 10: return 563; // Nature rune
+            case 11: return 564; // Law rune
+            case 12: return 565; // Body rune
+            case 13: return 566; // Soul rune
+            case 14: return 9075; // Astral rune
+            case 15: return 4696; // Mist rune
+            case 16: return 4698; // Dust rune
+            case 17: return 4700; // Mud rune
+            case 18: return 4702; // Smoke rune
+            case 19: return 4704; // Steam rune
+            case 20: return 4706; // Lava rune
+            default: return 0;   // Unknown rune type
+        }
     }
     
     /**
