@@ -1239,9 +1239,9 @@ public class DatabaseManager
     {
         String insertSQL = 
             "INSERT INTO animations_data (session_id, tick_id, tick_number, timestamp, " +
-            "current_animation, animation_type, animation_duration, animation_start_time, " +
+            "current_animation, animation_name, animation_type, animation_duration, animation_start_time, " +
             "last_animation, animation_change_count, pose_animation, recent_animations) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)";
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)";
         
         try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
             for (int i = 0; i < batch.size(); i++) {
@@ -1256,15 +1256,16 @@ public class DatabaseManager
                     stmt.setObject(3, tickData.getTickNumber());
                     stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp()));
                     stmt.setObject(5, animations.getCurrentAnimation());
-                    stmt.setString(6, animations.getAnimationType());
-                    stmt.setObject(7, animations.getAnimationDuration());
-                    stmt.setObject(8, animations.getAnimationStartTime());
-                    stmt.setString(9, animations.getLastAnimation());
-                    stmt.setObject(10, animations.getAnimationChangeCount());
-                    stmt.setObject(11, animations.getPoseAnimation());
+                    stmt.setString(6, animations.getAnimationName()); // RuneLite API friendly name
+                    stmt.setString(7, animations.getAnimationType());
+                    stmt.setObject(8, animations.getAnimationDuration());
+                    stmt.setObject(9, animations.getAnimationStartTime());
+                    stmt.setString(10, animations.getLastAnimation());
+                    stmt.setObject(11, animations.getAnimationChangeCount());
+                    stmt.setObject(12, animations.getPoseAnimation());
                     
                     // Convert recent animations list to JSONB
-                    stmt.setString(12, animations.getRecentAnimations() != null ? 
+                    stmt.setString(13, animations.getRecentAnimations() != null ? 
                         convertToJson(animations.getRecentAnimations()) : "[]");
                     
                     stmt.addBatch();
@@ -2789,4 +2790,6 @@ public class DatabaseManager
         
         return mostValuable;
     }
+    
+    // Click intelligence methods removed - using existing click_context table instead
 }

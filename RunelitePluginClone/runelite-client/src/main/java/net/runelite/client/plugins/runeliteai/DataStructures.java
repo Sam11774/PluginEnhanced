@@ -781,6 +781,7 @@ public class DataStructures
     @NoArgsConstructor
     public static class AnimationData {
         private Integer currentAnimation;
+        private String animationName;  // Friendly name from RuneLite AnimationID constants
         private String animationType;
         private Integer animationDuration;
         private Long animationStartTime;
@@ -789,9 +790,10 @@ public class DataStructures
         private Integer poseAnimation;
         private List<Integer> recentAnimations;
         
-        public int getDataPointCount() { return 8; }
+        public int getDataPointCount() { return 9; }  // Updated for animationName field
         public long getEstimatedSize() { 
             return 64 + (16 * 5) + (8 * 1) +
+                (animationName != null ? animationName.length() * 2 : 0) +
                 (animationType != null ? animationType.length() * 2 : 0) +
                 (lastAnimation != null ? lastAnimation.length() * 2 : 0);
         }
@@ -1429,5 +1431,327 @@ public class DataStructures
             size += (keyCombinations != null ? keyCombinations.stream().mapToLong(KeyCombinationData::getEstimatedSize).sum() : 0);
             return size;
         }
+    }
+
+    /**
+     * Comprehensive Click Intelligence - Full contextual analysis of player clicks
+     * Combines click data with environmental, tactical, and predictive intelligence
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ClickIntelligence
+    {
+        // ===== ENHANCED CLICK DATA =====
+        private String clickType;                // LEFT_CLICK, RIGHT_CLICK, DRAG, etc.
+        private String menuAction;               // WALK, CC_OP, NPC_FIRST_OPTION, etc.
+        private String menuOption;               // "Attack", "Walk here", "Withdraw-All"
+        private String menuTarget;               // Original menu target text
+        
+        // Target Resolution (API-driven)
+        private String targetType;               // NPC, GAME_OBJECT, INTERFACE, WALK, etc.
+        private Integer targetId;                // NPC ID, Object ID, Item ID, etc.
+        private String targetName;               // API-resolved name (not hardcoded)
+        private String targetDescription;        // Additional context from API
+        
+        // Coordinates & Positioning
+        private Integer screenX;                 // Screen click coordinates
+        private Integer screenY;
+        private Integer worldX;                  // World coordinates
+        private Integer worldY;
+        private Integer plane;                   // Game plane
+        
+        // Item Context (if item interaction)
+        private Integer itemId;                  // Item being interacted with
+        private String itemName;                 // API-resolved item name
+        private Boolean isItemOperation;         // Was this an item-based action
+        private Integer itemSlot;                // Inventory/equipment slot
+        
+        // Timing Intelligence
+        private Long clickTimestamp;             // Precise click timestamp
+        private Integer clickDurationMs;         // How long the click lasted
+        private Integer tickNumber;              // Game tick when click occurred
+        
+        // ===== PLAYER STATE CONTEXT =====
+        private PlayerStateContext playerState;
+        
+        // ===== ENVIRONMENTAL INTELLIGENCE =====
+        private EnvironmentalContext environment;
+        
+        // ===== TIMING CORRELATIONS =====
+        private TimingCorrelations timing;
+        
+        // ===== INVENTORY CONTEXT =====
+        private InventoryContext inventory;
+        
+        // ===== TACTICAL ASSESSMENT =====
+        private TacticalAssessment tactical;
+        
+        // ===== PREDICTIVE ANALYTICS =====
+        private PredictiveAnalytics predictions;
+        
+        public int getDataPointCount() { return 50; } // Comprehensive data points across all contexts
+    }
+    
+    /**
+     * Player state at the moment of click
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PlayerStateContext
+    {
+        // Vitals
+        private Integer currentHitpoints;
+        private Integer maxHitpoints;
+        private Integer currentPrayer;
+        private Integer maxPrayer;
+        private Integer energy;
+        private Integer specialAttackPercent;
+        
+        // Status conditions
+        private Boolean isPoisoned;
+        private Boolean isDiseased;
+        private Boolean isVenomed;
+        
+        // Equipment context
+        private String weaponName;               // API-resolved weapon name
+        private String weaponType;               // Sword, bow, staff, etc.
+        private String attackStyle;              // Current attack style
+        private Integer combatLevel;             // Total combat level
+        private Long totalEquipmentValue;        // Total gear value
+        
+        // Current animation
+        private Integer currentAnimation;        // Animation ID
+        private String animationName;            // API-resolved animation name
+        private String animationType;            // idle, combat, skilling, movement
+        
+        // Recent activity (last 5 ticks)
+        private Boolean recentCombat;            // Was in combat recently
+        private Boolean recentMovement;          // Was moving recently
+        private Boolean recentBanking;           // Was banking recently
+        private Boolean recentSkilling;          // Was skilling recently
+    }
+    
+    /**
+     * Environmental context surrounding the click
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class EnvironmentalContext
+    {
+        // NPC Environment
+        private Integer totalNpcCount;           // Total NPCs nearby
+        private Integer aggressiveNpcCount;      // Aggressive NPCs nearby
+        private Integer combatNpcCount;          // Combat-capable NPCs
+        private String mostCommonNpcType;        // API-resolved most common NPC
+        private Integer averageNpcCombatLevel;   // Average combat level of NPCs
+        private java.util.List<NearbyNPC> nearbyNpcs; // Detailed NPC list
+        
+        // Object Environment  
+        private Integer totalObjectCount;        // Interactive objects nearby
+        private String mostCommonObjectType;     // API-resolved most common object
+        private java.util.List<NearbyObject> nearbyObjects; // Detailed object list
+        
+        // Player Environment
+        private Integer nearbyPlayerCount;       // Other players nearby
+        private Boolean pvpArea;                 // Is this a PvP area
+        private Boolean safeArea;                // Is this a safe area (bank, etc.)
+        
+        // Location Intelligence
+        private Integer regionId;                // Current region
+        private String locationName;             // API-resolved location name
+        private String areaType;                 // BANK, COMBAT, SKILLING, WILDERNESS, etc.
+    }
+    
+    /**
+     * Timing correlations with other input events
+     */
+    @Data
+    @Builder  
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TimingCorrelations
+    {
+        // Mouse button correlation
+        private String mouseButtonType;          // LEFT, RIGHT, MIDDLE
+        private Integer mouseButtonDuration;     // Duration of mouse button press
+        private Boolean perfectCoordinateMatch;  // Did mouse coords exactly match click coords
+        
+        // Recent keyboard activity (last 3 ticks)
+        private java.util.List<String> recentKeys; // Keys pressed recently
+        private Boolean recentHotkeys;           // F-keys pressed recently
+        private String lastHotkeyPressed;        // Last F-key pressed
+        private Integer timeSinceLastHotkey;     // Ms since last hotkey
+        
+        // Animation correlation
+        private Boolean triggeredAnimation;      // Did click trigger animation
+        private String resultingAnimation;       // What animation was triggered
+        private Integer animationDelay;          // Delay between click and animation
+        
+        // Interface correlation
+        private Boolean openedInterface;         // Did click open interface
+        private Boolean closedInterface;         // Did click close interface
+        private String interfaceChanged;         // Which interface changed
+    }
+    
+    /**
+     * Inventory context and changes
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class InventoryContext
+    {
+        // Current inventory state
+        private Integer totalItems;              // Total items in inventory
+        private Integer freeSlots;               // Free inventory slots
+        private Long totalValue;                 // Total inventory value
+        private String mostValuableItem;         // API-resolved most valuable item name
+        
+        // Recent changes (this tick and previous)
+        private Integer itemsAdded;              // Items gained this tick
+        private Integer itemsRemoved;            // Items lost this tick
+        private Integer quantityGained;          // Quantity gained this tick
+        private Integer quantityLost;            // Quantity lost this tick
+        private Long valueGained;                // Value gained this tick
+        private Long valueLost;                  // Value lost this tick
+        
+        // Special states
+        private Integer notedItemsCount;         // Count of noted items
+        private Boolean inventoryFull;           // Is inventory full
+        private Boolean hasConsumables;          // Has food/potions
+        private Boolean hasCombatSupplies;       // Has arrows/runes/etc.
+    }
+    
+    /**
+     * Tactical assessment of the click situation
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class TacticalAssessment
+    {
+        // Threat Analysis
+        private String threatLevel;              // LOW, MEDIUM, HIGH, EXTREME
+        private Integer threatsNearby;           // Number of potential threats
+        private Integer escapeRoutes;            // Number of escape options
+        private Boolean canTeleport;             // Player has teleport options
+        
+        // Resource Evaluation
+        private String resourceState;            // ABUNDANT, ADEQUATE, LOW, CRITICAL
+        private Boolean hasFood;                 // Has healing items
+        private Boolean hasPotions;              // Has stat potions
+        private Boolean hasSupplies;             // Has activity-specific supplies
+        private Integer estimatedSupplyDuration; // How long supplies will last (ticks)
+        
+        // Strategic Position
+        private String positionAssessment;       // OPTIMAL, GOOD, RISKY, DANGEROUS  
+        private Boolean hasAdvantage;            // Tactical advantage present
+        private String advantage;                // What advantage (RANGE, HEIGHT, NUMBERS, etc.)
+        
+        // Click Efficiency
+        private String clickQuality;             // PERFECT, GOOD, AVERAGE, POOR
+        private Boolean optimalTiming;           // Was click optimally timed
+        private String inefficiency;             // What could be improved
+    }
+    
+    /**
+     * Predictive analytics based on current situation
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PredictiveAnalytics
+    {
+        // Immediate Predictions (next 1-5 ticks)
+        private String likelyNextAction;         // ATTACK, MOVE, BANK, TELEPORT, etc.
+        private Long predictedDuration;          // Expected duration of action in milliseconds
+        private Double nextActionConfidence;     // 0.0-1.0 confidence score
+        private java.util.List<String> possibleActions; // List of possible next actions
+        
+        // Outcome Predictions
+        private Double successLikelihood;        // 0.0-1.0 success probability
+        private String predictedOutcome;         // SUCCESS, FAILURE, INTERRUPTED, etc.
+        private Double outcomeConfidence;        // 0.0-1.0 confidence score
+        private String reasoningBasis;           // Why this prediction was made
+        
+        // Pattern Analysis
+        private Double patternMatchConfidence;   // 0.0-1.0 confidence in pattern match
+        private String behaviorClassification;   // COMBAT_TRAINING, RESOURCE_GATHERING, etc.
+        private Double automationRisk;           // 0.0-1.0 likelihood of automation
+        private String skillProgressionContext;  // Current skill training context
+        private String questContext;             // Current quest context
+        private String activityClassification;   // Primary activity classification
+        
+        // Learning and Optimization
+        private String learningOpportunity;     // Identified learning opportunity
+        private String optimizationSuggestion;  // Performance improvement suggestion
+        private String warningFlags;            // Any warning flags detected
+        private Double predictiveAccuracy;      // Historical accuracy of predictions
+        private String historicalPatterns;      // Relevant historical patterns
+        private String contextualInsights;      // Additional contextual insights
+        
+        // Risk Assessment
+        private String riskLevel;                // MINIMAL, LOW, MODERATE, HIGH, EXTREME
+        private java.util.List<String> riskFactors; // Specific risk factors identified
+        private String recommendedAction;        // What should player do
+        
+        // Performance Assessment
+        private String skillLevel;               // BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+        private Double efficiencyScore;          // 0.0-1.0 efficiency rating
+        private String improvementSuggestion;    // How to play better
+        
+        // Pattern Recognition
+        private String behaviorPattern;          // COMBAT_TRAINING, RESOURCE_GATHERING, etc.
+        private Boolean repeatAction;            // Is this part of repetitive activity
+        private Integer sequencePosition;        // Position in action sequence (if applicable)
+    }
+    
+    /**
+     * Nearby NPC details with API resolution
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class NearbyNPC
+    {
+        private Integer npcId;                   // RuneLite NPC ID
+        private String npcName;                  // API-resolved NPC name
+        private Integer combatLevel;             // NPC combat level
+        private Integer worldX;                  // NPC world X coordinate
+        private Integer worldY;                  // NPC world Y coordinate
+        private Integer distance;                // Distance from player
+        private Boolean isAggressive;            // Is NPC aggressive
+        private Boolean isInteracting;           // Is NPC currently interacting
+        private Integer currentAnimation;        // NPC current animation
+        private String animationName;            // API-resolved animation name
+    }
+    
+    /**
+     * Nearby object details with API resolution
+     */
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class NearbyObject
+    {
+        private Integer objectId;                // RuneLite Object ID
+        private String objectName;               // API-resolved object name
+        private String objectType;               // BANK, ALTAR, TREE, ROCK, etc.
+        private Integer worldX;                  // Object world X coordinate
+        private Integer worldY;                  // Object world Y coordinate
+        private Integer distance;                // Distance from player
+        private Boolean isInteractable;          // Can player interact with it
+        private java.util.List<String> availableActions; // Available right-click options
     }
 }

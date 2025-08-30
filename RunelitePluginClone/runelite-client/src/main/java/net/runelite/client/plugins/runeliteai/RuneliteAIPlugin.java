@@ -81,6 +81,9 @@ public class RuneliteAIPlugin extends Plugin
     private QualityValidator qualityValidator;
     private PerformanceMonitor performanceMonitor;
     
+    // Enhanced intelligence services (placeholder for future implementation)
+    // @Inject private ClickIntelligenceService clickIntelligenceService;
+    
     // Enhanced keyboard tracking
     private final AtomicInteger keyPressCountSinceTick = new AtomicInteger(0);
     private final ConcurrentHashMap<Integer, Long> recentKeyPresses = new ConcurrentHashMap<>();
@@ -620,7 +623,16 @@ public class RuneliteAIPlugin extends Plugin
     {
         if (!isPluginActive || dataCollectionManager == null) return;
         
-        dataCollectionManager.recordClickContext(event);
+        try {
+            // Record basic click context (existing functionality)
+            dataCollectionManager.recordClickContext(event);
+            
+            // Enhanced click analytics could be added here in the future
+            // For now, the existing click context system provides comprehensive data
+            
+        } catch (Exception e) {
+            log.error("Failed to process MenuOptionClicked event: {}", e.getMessage(), e);
+        }
     }
     
     /**
@@ -866,10 +878,24 @@ public class RuneliteAIPlugin extends Plugin
             }
             
             // Add main key
-            combination.append(getKeyName(e.getKeyCode()));
+            String keyName = getKeyName(e.getKeyCode());
+            combination.append(keyName);
             
-            // Only record if it's actually a combination
-            if (!modifiers.isEmpty()) {
+            // FIXED: Enhanced key combination detection with debugging
+            log.debug("[KEY-COMBO-DEBUG] Key pressed: {} ({}), Modifiers detected: {}, Is combination: {}", 
+                keyName, e.getKeyCode(), modifiers.size(), !modifiers.isEmpty());
+            
+            // Only record if it's actually a combination (modifier + non-modifier key)
+            // Also exclude if the key itself is a modifier key to avoid double-recording
+            boolean isModifierKey = (e.getKeyCode() == KeyEvent.VK_CONTROL || 
+                                   e.getKeyCode() == KeyEvent.VK_ALT || 
+                                   e.getKeyCode() == KeyEvent.VK_SHIFT ||
+                                   e.getKeyCode() == KeyEvent.VK_META);
+            
+            if (!modifiers.isEmpty() && !isModifierKey) {
+                log.debug("[KEY-COMBO-DEBUG] Recording combination: '{}' with {} modifiers", 
+                    combination.toString(), modifiers.size());
+                    
                 DataStructures.KeyCombinationData keyCombination = DataStructures.KeyCombinationData.builder()
                     .keyCombination(combination.toString())
                     .primaryKeyCode(e.getKeyCode())
@@ -882,11 +908,16 @@ public class RuneliteAIPlugin extends Plugin
                     .build();
                     
                 recentKeyCombinations.offer(keyCombination);
+                log.debug("[KEY-COMBO-DEBUG] Successfully added key combination to queue. Queue size: {}", 
+                    recentKeyCombinations.size());
                 
                 // Clean up old entries
                 while (recentKeyCombinations.size() > 50) {
                     recentKeyCombinations.poll();
                 }
+            } else {
+                log.debug("[KEY-COMBO-DEBUG] Not recording - isModifierKey: {}, modifiersEmpty: {}", 
+                    isModifierKey, modifiers.isEmpty());
             }
         } catch (Exception ex) {
             log.warn("Error checking key combinations", ex);

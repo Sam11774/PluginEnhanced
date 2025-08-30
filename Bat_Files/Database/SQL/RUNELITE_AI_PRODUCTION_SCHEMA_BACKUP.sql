@@ -1513,55 +1513,262 @@ BEGIN
     RAISE NOTICE '  Status: PRODUCTION READY ✅';
 END $$;
 
+-- =================================================================================
+-- COMPREHENSIVE CLICK INTELLIGENCE TABLE
+-- =================================================================================
+
+-- Comprehensive Click Intelligence - Full contextual analysis of player clicks
+-- Combines click data with environmental, tactical, and predictive intelligence
+CREATE TABLE IF NOT EXISTS click_intelligence (
+    id BIGSERIAL PRIMARY KEY,
+    session_id INTEGER NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
+    tick_id BIGINT REFERENCES game_ticks(tick_id) ON DELETE CASCADE,
+    tick_number INTEGER NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+    
+    -- ===== ENHANCED CLICK DATA =====
+    click_type VARCHAR(20),                     -- LEFT_CLICK, RIGHT_CLICK, DRAG, etc.
+    menu_action VARCHAR(50),                    -- WALK, CC_OP, NPC_FIRST_OPTION, etc.
+    menu_option VARCHAR(100),                   -- "Attack", "Walk here", "Withdraw-All"
+    menu_target VARCHAR(200),                   -- Original menu target text
+    
+    -- Target Resolution (API-driven)
+    target_type VARCHAR(30),                    -- NPC, GAME_OBJECT, INTERFACE, WALK, etc.
+    target_id INTEGER,                          -- NPC ID, Object ID, Item ID, etc.
+    target_name VARCHAR(200),                   -- API-resolved name (not hardcoded)
+    target_description TEXT,                    -- Additional context from API
+    
+    -- Coordinates & Positioning
+    screen_x INTEGER,                           -- Screen click coordinates
+    screen_y INTEGER,
+    world_x INTEGER,                            -- World coordinates
+    world_y INTEGER,
+    plane INTEGER,                              -- Game plane
+    
+    -- Item Context (if item interaction)
+    item_id INTEGER,                            -- Item being interacted with
+    item_name VARCHAR(200),                     -- API-resolved item name
+    is_item_operation BOOLEAN DEFAULT FALSE,    -- Was this an item-based action
+    item_slot INTEGER,                          -- Inventory/equipment slot
+    
+    -- Timing Intelligence
+    click_timestamp BIGINT,                     -- Precise click timestamp
+    click_duration_ms INTEGER,                  -- How long the click lasted
+    
+    -- ===== PLAYER STATE CONTEXT =====
+    -- Vitals at moment of click
+    player_hitpoints INTEGER,                   -- Current HP
+    player_max_hitpoints INTEGER,               -- Max HP
+    player_prayer INTEGER,                      -- Current prayer
+    player_max_prayer INTEGER,                  -- Max prayer  
+    player_energy INTEGER,                      -- Current energy (0-100)
+    player_special_attack INTEGER,              -- Special attack % (0-100)
+    
+    -- Status conditions
+    is_poisoned BOOLEAN DEFAULT FALSE,
+    is_diseased BOOLEAN DEFAULT FALSE,
+    is_venomed BOOLEAN DEFAULT FALSE,
+    
+    -- Equipment context
+    weapon_name VARCHAR(100),                   -- API-resolved weapon name
+    weapon_type VARCHAR(50),                    -- Sword, bow, staff, etc.
+    attack_style VARCHAR(50),                   -- Current attack style
+    combat_level INTEGER,                       -- Total combat level
+    total_equipment_value BIGINT DEFAULT 0,     -- Total gear value
+    
+    -- Animation context
+    current_animation INTEGER,                  -- Animation ID
+    animation_name VARCHAR(100),                -- API-resolved animation name
+    animation_type VARCHAR(50),                 -- idle, combat, skilling, movement
+    
+    -- Recent activity flags (last 5 ticks)
+    recent_combat BOOLEAN DEFAULT FALSE,        -- Was in combat recently
+    recent_movement BOOLEAN DEFAULT FALSE,      -- Was moving recently
+    recent_banking BOOLEAN DEFAULT FALSE,       -- Was banking recently
+    recent_skilling BOOLEAN DEFAULT FALSE,      -- Was skilling recently
+    
+    -- ===== ENVIRONMENTAL INTELLIGENCE =====
+    -- NPC Environment
+    total_npc_count INTEGER DEFAULT 0,          -- Total NPCs nearby
+    aggressive_npc_count INTEGER DEFAULT 0,     -- Aggressive NPCs nearby
+    combat_npc_count INTEGER DEFAULT 0,         -- Combat-capable NPCs
+    most_common_npc_type VARCHAR(100),          -- API-resolved most common NPC
+    average_npc_combat_level INTEGER DEFAULT 0, -- Average combat level of NPCs
+    nearby_npcs_details JSONB DEFAULT '[]'::jsonb, -- Detailed NPC list
+    
+    -- Object Environment
+    total_object_count INTEGER DEFAULT 0,       -- Interactive objects nearby
+    most_common_object_type VARCHAR(100),       -- API-resolved most common object
+    nearby_objects_details JSONB DEFAULT '[]'::jsonb, -- Detailed object list
+    
+    -- Player Environment
+    nearby_player_count INTEGER DEFAULT 0,      -- Other players nearby
+    is_pvp_area BOOLEAN DEFAULT FALSE,          -- Is this a PvP area
+    is_safe_area BOOLEAN DEFAULT TRUE,          -- Is this a safe area (bank, etc.)
+    
+    -- Location Intelligence
+    region_id INTEGER,                          -- Current region
+    location_name VARCHAR(200),                 -- API-resolved location name
+    area_type VARCHAR(50),                      -- BANK, COMBAT, SKILLING, WILDERNESS, etc.
+    
+    -- ===== TIMING CORRELATIONS =====
+    -- Mouse button correlation
+    mouse_button_type VARCHAR(10),              -- LEFT, RIGHT, MIDDLE
+    mouse_button_duration INTEGER,              -- Duration of mouse button press
+    perfect_coordinate_match BOOLEAN DEFAULT FALSE, -- Did mouse coords exactly match click coords
+    
+    -- Recent keyboard activity
+    recent_keys JSONB DEFAULT '[]'::jsonb,      -- Keys pressed recently
+    recent_hotkeys BOOLEAN DEFAULT FALSE,       -- F-keys pressed recently
+    last_hotkey_pressed VARCHAR(10),            -- Last F-key pressed
+    time_since_last_hotkey INTEGER,             -- Ms since last hotkey
+    
+    -- Animation correlation
+    triggered_animation BOOLEAN DEFAULT FALSE,  -- Did click trigger animation
+    resulting_animation VARCHAR(100),           -- What animation was triggered
+    animation_delay INTEGER,                    -- Delay between click and animation
+    
+    -- Interface correlation
+    opened_interface BOOLEAN DEFAULT FALSE,     -- Did click open interface
+    closed_interface BOOLEAN DEFAULT FALSE,     -- Did click close interface
+    interface_changed VARCHAR(100),             -- Which interface changed
+    
+    -- ===== INVENTORY CONTEXT =====
+    -- Current inventory state
+    inventory_total_items INTEGER DEFAULT 0,    -- Total items in inventory
+    inventory_free_slots INTEGER DEFAULT 28,    -- Free inventory slots
+    inventory_total_value BIGINT DEFAULT 0,     -- Total inventory value
+    inventory_most_valuable_item VARCHAR(100),  -- API-resolved most valuable item name
+    
+    -- Recent changes (this tick)
+    inventory_items_added INTEGER DEFAULT 0,    -- Items gained this tick
+    inventory_items_removed INTEGER DEFAULT 0,  -- Items lost this tick
+    inventory_quantity_gained INTEGER DEFAULT 0, -- Quantity gained this tick
+    inventory_quantity_lost INTEGER DEFAULT 0,  -- Quantity lost this tick
+    inventory_value_gained BIGINT DEFAULT 0,    -- Value gained this tick
+    inventory_value_lost BIGINT DEFAULT 0,      -- Value lost this tick
+    
+    -- Special inventory states
+    noted_items_count INTEGER DEFAULT 0,        -- Count of noted items
+    inventory_full BOOLEAN DEFAULT FALSE,       -- Is inventory full
+    has_consumables BOOLEAN DEFAULT FALSE,      -- Has food/potions
+    has_combat_supplies BOOLEAN DEFAULT FALSE,  -- Has arrows/runes/etc.
+    
+    -- ===== TACTICAL ASSESSMENT =====
+    -- Threat Analysis
+    threat_level VARCHAR(20) DEFAULT 'LOW',     -- LOW, MEDIUM, HIGH, EXTREME
+    threats_nearby INTEGER DEFAULT 0,           -- Number of potential threats
+    escape_routes INTEGER DEFAULT 5,            -- Number of escape options
+    can_teleport BOOLEAN DEFAULT TRUE,          -- Player has teleport options
+    
+    -- Resource Evaluation
+    resource_state VARCHAR(20) DEFAULT 'ADEQUATE', -- ABUNDANT, ADEQUATE, LOW, CRITICAL
+    has_food BOOLEAN DEFAULT FALSE,             -- Has healing items
+    has_potions BOOLEAN DEFAULT FALSE,          -- Has stat potions
+    has_supplies BOOLEAN DEFAULT FALSE,         -- Has activity-specific supplies
+    estimated_supply_duration INTEGER DEFAULT 100, -- How long supplies will last (ticks)
+    
+    -- Strategic Position
+    position_assessment VARCHAR(20) DEFAULT 'GOOD', -- OPTIMAL, GOOD, RISKY, DANGEROUS
+    has_advantage BOOLEAN DEFAULT FALSE,        -- Tactical advantage present
+    advantage VARCHAR(50),                      -- What advantage (RANGE, HEIGHT, NUMBERS, etc.)
+    
+    -- Click Efficiency
+    click_quality VARCHAR(20) DEFAULT 'GOOD',   -- PERFECT, GOOD, AVERAGE, POOR
+    optimal_timing BOOLEAN DEFAULT TRUE,        -- Was click optimally timed
+    inefficiency VARCHAR(200),                  -- What could be improved
+    
+    -- ===== PREDICTIVE ANALYTICS =====
+    -- Immediate Predictions (next 1-5 ticks)
+    likely_next_action VARCHAR(50),             -- ATTACK, MOVE, BANK, TELEPORT, etc.
+    next_action_confidence DOUBLE PRECISION DEFAULT 0.5, -- 0.0-1.0 confidence score
+    possible_actions JSONB DEFAULT '[]'::jsonb, -- List of possible next actions
+    
+    -- Outcome Predictions
+    predicted_outcome VARCHAR(50) DEFAULT 'SUCCESS', -- SUCCESS, FAILURE, INTERRUPTED, etc.
+    outcome_confidence DOUBLE PRECISION DEFAULT 0.7, -- 0.0-1.0 confidence score
+    reasoning_basis TEXT,                       -- Why this prediction was made
+    
+    -- Risk Assessment
+    risk_level VARCHAR(20) DEFAULT 'LOW',       -- MINIMAL, LOW, MODERATE, HIGH, EXTREME
+    risk_factors JSONB DEFAULT '[]'::jsonb,     -- Specific risk factors identified
+    recommended_action VARCHAR(200),            -- What should player do
+    
+    -- Performance Assessment
+    skill_level VARCHAR(20) DEFAULT 'INTERMEDIATE', -- BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+    efficiency_score DOUBLE PRECISION DEFAULT 0.8, -- 0.0-1.0 efficiency rating
+    improvement_suggestion VARCHAR(500),        -- How to play better
+    
+    -- Pattern Recognition
+    behavior_pattern VARCHAR(50),               -- COMBAT_TRAINING, RESOURCE_GATHERING, etc.
+    repeat_action BOOLEAN DEFAULT FALSE,        -- Is this part of repetitive activity
+    sequence_position INTEGER DEFAULT 0,        -- Position in action sequence (if applicable)
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for click intelligence performance
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_session ON click_intelligence(session_id);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_tick ON click_intelligence(session_id, tick_number);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_timestamp ON click_intelligence(click_timestamp);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_target ON click_intelligence(target_type, target_name);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_spatial ON click_intelligence(world_x, world_y, plane);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_behavior ON click_intelligence(behavior_pattern, repeat_action);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_tactical ON click_intelligence(threat_level, resource_state);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_predictive ON click_intelligence(likely_next_action, predicted_outcome);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_efficiency ON click_intelligence(click_quality, efficiency_score);
+
+-- JSONB indexes for complex queries
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_npcs_gin ON click_intelligence USING GIN (nearby_npcs_details);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_objects_gin ON click_intelligence USING GIN (nearby_objects_details);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_keys_gin ON click_intelligence USING GIN (recent_keys);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_actions_gin ON click_intelligence USING GIN (possible_actions);
+CREATE INDEX IF NOT EXISTS idx_click_intelligence_risks_gin ON click_intelligence USING GIN (risk_factors);
+
+-- Table comments
+COMMENT ON TABLE click_intelligence IS 'Comprehensive Click Intelligence - Full contextual analysis of player clicks with environmental, tactical, and predictive intelligence. Provides 360-degree situational awareness for every click.';
+COMMENT ON COLUMN click_intelligence.target_name IS 'API-resolved target name using RuneLite APIs (not hardcoded)';
+COMMENT ON COLUMN click_intelligence.nearby_npcs_details IS 'JSONB array of nearby NPCs with API-resolved names and combat details';
+COMMENT ON COLUMN click_intelligence.nearby_objects_details IS 'JSONB array of nearby objects with API-resolved names and interaction options';
+COMMENT ON COLUMN click_intelligence.recent_keys IS 'JSONB array of recently pressed keys for timing correlation';
+COMMENT ON COLUMN click_intelligence.possible_actions IS 'JSONB array of predicted possible next actions';
+COMMENT ON COLUMN click_intelligence.risk_factors IS 'JSONB array of identified risk factors for tactical assessment';
+COMMENT ON COLUMN click_intelligence.efficiency_score IS 'Player efficiency score (0.0-1.0) based on click quality and timing';
+COMMENT ON COLUMN click_intelligence.behavior_pattern IS 'Identified behavior pattern for activity classification';
+
+-- Update database description
+COMMENT ON DATABASE runelite_ai IS 'RuneLiteAI Production Database v8.3 - Comprehensive Click Intelligence System. Enhanced with 360-degree click analysis including environmental, tactical, and predictive intelligence. Optimized for 3,100+ data points per tick collection with advanced behavioral analytics.';
 
 -- =================================================================================
--- COMPLETE TABLE SUMMARY - 31 PRODUCTION TABLES
+-- COMPLETE TABLE SUMMARY - 19 PRODUCTION TABLES
 -- =================================================================================
 
 -- CORE TABLES (4):
 -- 1. sessions - Session management and tracking
--- 2. game_ticks - Core tick data with timing and quality metrics  
--- 3. input_data - Mouse, keyboard, camera input with movement analytics
--- 4. interface_data - UI state, dialogues, shops, banks
+-- 2. game_ticks - Core tick data with timing and quality metrics
+-- 3. click_context - Comprehensive click tracking for behavioral analysis
+-- 4. key_presses - Individual key press events with timing and classification
+-- 5. mouse_buttons - All mouse button events with timing and camera rotation
+-- 6. key_combinations - Hotkey and key combination detection with classification
 
--- PLAYER DATA TABLES (11):
--- 5. player_vitals - Health, prayer, energy, special attack, combat states
--- 6. player_location - World coordinates, movement tracking
--- 7. player_stats - All 23 skill levels and experience points
--- 8. player_equipment - All 14 equipment slots with friendly names
--- 9. player_inventory - JSONB inventory with friendly names and change tracking
--- 10. player_prayers - Individual prayer states (28 prayers) and quick prayers
--- 11. player_spells - Spell casting, teleports, autocast, and rune pouch data
--- 12. hitsplats_data - Combat damage and healing events per tick
--- 13. animations_data - Player animation states and changes per tick
--- 14. interactions_data - Player-object interaction events per tick
--- 15. nearby_players_data - Other players in vicinity per tick
+-- PLAYER DATA TABLES (8):
+-- 7. player_vitals - Health, prayer, energy, special attack, combat states
+-- 8. player_location - World coordinates, movement tracking
+-- 9. player_stats - All 23 skill levels and experience points (NEW)
+-- 10. player_equipment - All 14 equipment slots with friendly names
+-- 11. player_inventory - JSONB inventory with friendly names and change tracking
+-- 12. player_prayers - Individual prayer states (28 prayers) and quick prayers
+-- 13. player_spells - Spell casting, teleports, autocast, and rune pouch data
 
--- WORLD DATA TABLES (5):
--- 16. nearby_npcs_data - NPCs in environment per tick
--- 17. world_environment - General environment data per tick
--- 18. ground_items_data - Ground items with friendly names per tick
--- 19. game_objects_data - Interactive objects with friendly names per tick
--- 20. combat_data - Combat mechanics, animations, combat stats per tick
-
--- COMMUNICATION TABLES (1):
--- 21. chat_messages - All chat types with message content and filtering
-
--- BANKING TABLES (4):
--- 22. bank_interface_data - Bank interface state and configuration
--- 23. bank_items_data - Individual bank items with position and metadata  
--- 24. bank_actions - Bank transaction history and behavioral analysis
--- 25. session_analysis - Comprehensive session analytics and insights
-
--- INPUT ANALYTICS TABLES (4):
--- 26. click_context - Comprehensive click tracking for behavioral analysis
--- 27. key_presses - Individual key press events with timing and classification
--- 28. mouse_buttons - All mouse button events with timing and camera rotation
--- 29. key_combinations - Hotkey and key combination detection with classification
+-- WORLD DATA TABLES (4):
+-- 15. world_environment - NPCs, objects, ground items, projectiles with friendly names
+-- 16. combat_data - Combat mechanics, animations, hitsplats
+-- 17. chat_messages - All chat types with message content and filtering
+-- 18. interface_data - UI state, dialogues, shops, banks
 
 -- SYSTEM TABLES (2):
--- 30. data_completeness_report - Data quality tracking and validation metrics
--- 31. schema_version_tracking - Database schema versioning and migration history
+-- 19. input_data - Mouse, keyboard, camera input with movement analytics
+-- 20. system_metrics - Performance monitoring, memory usage, FPS tracking
 
 -- =================================================================================
 -- PRODUCTION SCHEMA v8.4 DEPLOYMENT COMPLETE - FRIENDS DATA REMOVAL & SYSTEM OPTIMIZATION
