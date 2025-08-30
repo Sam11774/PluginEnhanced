@@ -812,6 +812,7 @@ public class DataStructures
         private String currentTarget;
         private String interactionType;
         private List<InteractingChanged> recentInteractions;
+        private String recentInteractionsJsonb; // ENHANCED: Rich JSONB with accurate timestamps and context
         
         public int getDataPointCount() { return 8; }
         public long getEstimatedSize() { 
@@ -854,33 +855,6 @@ public class DataStructures
                 (mostActiveMessageType != null ? mostActiveMessageType.length() * 2 : 0) +
                 (lastMessage != null ? lastMessage.length() * 2 : 0) +
                 (recentMessages != null ? recentMessages.size() * 128 : 0);
-        }
-    }
-    
-    // ===== FRIENDS DATA =====
-    @Data
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class FriendsData {
-        private Integer totalFriends;
-        private Integer onlineFriends;
-        private Integer offlineFriends;
-        private List<String> friendsList;
-        private String lastFriendInteraction;
-        private Long lastFriendActivity;
-        private Long lastUpdateTime;
-        private Integer friendsListCapacity;
-        
-        public int getDataPointCount() {
-            int count = 6; // totalFriends, onlineFriends, offlineFriends, lastFriendInteraction, lastFriendActivity, lastUpdateTime
-            count += (friendsList != null ? friendsList.size() : 0);
-            return count;
-        }
-        public long getEstimatedSize() { 
-            return 64 + (16 * 5) + (8 * 1) +
-                (friendsList != null ? friendsList.size() * 32 : 0) +
-                (lastFriendInteraction != null ? lastFriendInteraction.length() * 2 : 0);
         }
     }
     
@@ -951,6 +925,9 @@ public class DataStructures
         private Boolean skillsInterfaceOpen;
         private Boolean questInterfaceOpen;
         private Boolean settingsInterfaceOpen;
+        private String currentInterfaceTab; // ENHANCED: Added interface tab tracking
+        private Integer interfaceInteractionCount; // ENHANCED: Added interface interaction counting
+        private String interfaceClickCorrelation; // ENHANCED: Correlation with click_context data
         private List<String> openInterfaces;
         private String lastInterfaceOpened;
         private Long lastInterfaceTime;
@@ -959,13 +936,14 @@ public class DataStructures
         private List<Integer> visibleWidgets;
         
         public int getDataPointCount() {
-            int count = 8; // totalOpenInterfaces, primaryInterface, boolean fields, lastInterfaceOpened, lastInterfaceTime
+            int count = 10; // totalOpenInterfaces, primaryInterface, boolean fields, currentInterfaceTab, interfaceInteractionCount, lastInterfaceOpened, lastInterfaceTime
             count += (openInterfaces != null ? openInterfaces.size() : 0);
             return count;
         }
         public long getEstimatedSize() { 
-            return 64 + (16 * 7) + (8 * 1) +
+            return 64 + (16 * 9) + (8 * 1) + // Updated for currentInterfaceTab and interfaceInteractionCount fields
                 (primaryInterface != null ? primaryInterface.length() * 2 : 0) +
+                (currentInterfaceTab != null ? currentInterfaceTab.length() * 2 : 0) + // ENHANCED: Size for new field
                 (openInterfaces != null ? openInterfaces.size() * 32 : 0) +
                 (lastInterfaceOpened != null ? lastInterfaceOpened.length() * 2 : 0);
         }

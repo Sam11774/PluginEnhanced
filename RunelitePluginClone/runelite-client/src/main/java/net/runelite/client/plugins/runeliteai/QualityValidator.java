@@ -567,7 +567,7 @@ public class QualityValidator
     }
     
     private double evaluateSocialDataQuality(TickDataCollection tickData) {
-        return tickData.getChatData() != null || tickData.getFriendsData() != null ? 0.6 : 0.0;
+        return tickData.getChatData() != null ? 0.6 : 0.0;
     }
     
     private double evaluateInterfaceDataQuality(TickDataCollection tickData) {

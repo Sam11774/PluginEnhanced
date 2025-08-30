@@ -329,7 +329,17 @@ public class RuneliteAIPlugin extends Plugin
             
             // Database management
             if (config.enableDatabaseLogging()) {
-                databaseManager = new DatabaseManager(client, itemManager);
+                try {
+                    System.out.println("[PLUGIN-INIT] Attempting to create DatabaseManager...");
+                    log.info("[PLUGIN-INIT] Creating DatabaseManager with database logging enabled");
+                    databaseManager = new DatabaseManager(client, itemManager);
+                    System.out.println("[PLUGIN-INIT] DatabaseManager created successfully!");
+                    log.info("[PLUGIN-INIT] DatabaseManager initialized successfully");
+                } catch (Exception e) {
+                    System.out.println("[PLUGIN-INIT] DatabaseManager creation FAILED: " + e.getMessage());
+                    log.error("[PLUGIN-INIT] Failed to initialize DatabaseManager - database logging will be disabled", e);
+                    databaseManager = null;
+                }
             }
             
             // Security and behavioral analysis
@@ -360,7 +370,12 @@ public class RuneliteAIPlugin extends Plugin
     @Subscribe
     public void onGameTick(GameTick event)
     {
+        System.out.println("[GAME-TICK-DEBUG] onGameTick called - isPluginActive: " + isPluginActive + ", gameState: " + (client != null ? client.getGameState() : "null"));
+        log.debug("[GAME-TICK-DEBUG] onGameTick called - isPluginActive: {}, gameState: {}", isPluginActive, client != null ? client.getGameState() : "null");
+        
         if (!isPluginActive || client.getGameState() != GameState.LOGGED_IN) {
+            System.out.println("[GAME-TICK-DEBUG] Skipping tick - conditions not met");
+            log.debug("[GAME-TICK-DEBUG] Skipping tick - isPluginActive: {}, gameState: {}", isPluginActive, client != null ? client.getGameState() : "null");
             return;
         }
         

@@ -135,6 +135,9 @@ public class DataCollectionManager
     // Click context tracking
     private volatile DataStructures.ClickContextData lastClickContext = null;
     
+    // ENHANCED: Interface interaction counter for current tick
+    private int currentTickInterfaceInteractions = 0;
+    
     // Banking method tracking
     private final Queue<BankingClickEvent> recentBankingClicks = new ConcurrentLinkedQueue<>();
     private final Map<String, String> lastBankingMethods = new ConcurrentHashMap<>(); // action -> method
@@ -1965,6 +1968,9 @@ public class DataCollectionManager
             // FIRST: Record this as a menu interaction for interaction data collection
             recordMenuInteraction(event);
             
+            // ENHANCED: Count interface interactions for this tick
+            incrementInterfaceInteractionCount(event);
+            
             // Determine click type based on context
             String clickType = determineClickType(event);
             
@@ -2108,45 +2114,210 @@ public class DataCollectionManager
         try {
             switch (targetType) {
                 case "GAME_OBJECT":
-                    // Use ObjectComposition for game objects
-                    return getObjectName(menuEntry.getIdentifier());
+                    // ENHANCED: Use comprehensive ObjectComposition lookup for game objects  
+                    String objectName = getObjectNameEnhanced(menuEntry.getIdentifier());
+                    if (objectName != null && !objectName.trim().isEmpty()) {
+                        log.debug("[INTERACTION-DEBUG] ObjectComposition resolved object {} -> '{}'", 
+                            menuEntry.getIdentifier(), objectName);
+                        return objectName;
+                    }
+                    // Fallback to cleaned target name for objects
+                    log.debug("[INTERACTION-DEBUG] ObjectComposition failed for object {}, using target name fallback", 
+                        menuEntry.getIdentifier());
+                    return cleanTargetName(menuEntry.getTarget()) != null ? 
+                        cleanTargetName(menuEntry.getTarget()) : "Object_" + menuEntry.getIdentifier();
                     
                 case "GROUND_ITEM":
                 case "INVENTORY_ITEM":
-                    // Use ItemManager for items
+                    // Use ItemManager for items (already enhanced)
                     return getItemName(menuEntry.getIdentifier());
                     
                 case "NPC":
-                    // Get NPC name from client
-                    return getNPCName(menuEntry.getIdentifier());
+                    // ENHANCED: Get NPC name with fallback
+                    String npcName = getNPCName(menuEntry.getIdentifier());
+                    if (npcName != null && !npcName.trim().isEmpty()) {
+                        log.debug("[INTERACTION-DEBUG] NPC name resolved {} -> '{}'", menuEntry.getIdentifier(), npcName);
+                        return npcName;
+                    }
+                    // Fallback to cleaned target name for NPCs
+                    return cleanTargetName(menuEntry.getTarget()) != null ? 
+                        cleanTargetName(menuEntry.getTarget()) : "NPC_" + menuEntry.getIdentifier();
                     
                 case "PLAYER":
                     // Player names are usually in the target field
-                    return cleanTargetName(menuEntry.getTarget());
+                    String playerName = cleanTargetName(menuEntry.getTarget());
+                    log.debug("[INTERACTION-DEBUG] Player interaction target: '{}'", playerName);
+                    return playerName != null ? playerName : "Unknown_Player";
+                    
+                case "INTERFACE":
+                    // ENHANCED: Widget/Interface name resolution
+                    String interfaceName = getInterfaceWidgetName(menuEntry);
+                    if (interfaceName != null && !interfaceName.trim().isEmpty()) {
+                        log.debug("[INTERACTION-DEBUG] Interface widget resolved: '{}'", interfaceName);
+                        return interfaceName;
+                    }
+                    // Fallback to cleaned target name for interfaces
+                    String interfaceTarget = cleanTargetName(menuEntry.getTarget());
+                    log.debug("[INTERACTION-DEBUG] Interface fallback target: '{}'", interfaceTarget);
+                    return interfaceTarget != null ? interfaceTarget : "Interface_" + menuEntry.getIdentifier();
                     
                 default:
-                    // Use the raw target name, cleaned
-                    return cleanTargetName(menuEntry.getTarget());
+                    // ENHANCED: Better fallback for unknown target types
+                    String fallbackName = cleanTargetName(menuEntry.getTarget());
+                    log.debug("[INTERACTION-DEBUG] Unknown target type '{}', using fallback: '{}'", targetType, fallbackName);
+                    return fallbackName != null ? fallbackName : targetType + "_" + menuEntry.getIdentifier();
             }
         } catch (Exception e) {
-            log.debug("Error resolving target name: {}", e.getMessage());
+            log.debug("[INTERACTION-DEBUG] Error resolving target name for type '{}', ID {}: {}", 
+                targetType, menuEntry.getIdentifier(), e.getMessage());
             return cleanTargetName(menuEntry.getTarget());
         }
     }
     
     /**
-     * Get item name from ID using ItemManager
+     * ENHANCED: Get interface widget name from MenuEntry
+     */
+    private String getInterfaceWidgetName(MenuEntry menuEntry) {
+        if (menuEntry == null || client == null) return null;
+        
+        try {
+            // First try menu option - often the most reliable for interface elements
+            String option = menuEntry.getOption();
+            if (option != null && !option.trim().isEmpty() && !option.equals("null") && !option.equals("")) {
+                log.debug("[INTERACTION-DEBUG] Using menu option as widget name: '{}'", option);
+                return option.trim();
+            }
+            
+            // Try to get widget by packed ID
+            int packedId = menuEntry.getParam1();
+            Widget widget = client.getWidget(packedId);
+            
+            if (widget != null) {
+                // Try to get text from the widget
+                String text = widget.getText();
+                if (text != null && !text.trim().isEmpty()) {
+                    // Clean up the text (remove HTML tags, etc.)
+                    String cleanText = text.replaceAll("<[^>]*>", "").trim();
+                    if (!cleanText.isEmpty()) {
+                        log.debug("[INTERACTION-DEBUG] Widget text found: '{}'", cleanText);
+                        return cleanText;
+                    }
+                }
+                
+                // Try to get name from widget actions
+                String[] actions = widget.getActions();
+                if (actions != null) {
+                    for (String action : actions) {
+                        if (action != null && !action.trim().isEmpty()) {
+                            log.debug("[INTERACTION-DEBUG] Widget action found: '{}'", action);
+                            return action.trim();
+                        }
+                    }
+                }
+                
+                // Try to get tooltip or name
+                String name = widget.getName();
+                if (name != null && !name.trim().isEmpty()) {
+                    log.debug("[INTERACTION-DEBUG] Widget name found: '{}'", name);
+                    return name;
+                }
+                
+                // Try additional widget properties for interface name resolution
+                try {
+                    // Check if widget has a non-empty ID that might indicate its purpose
+                    int widgetId = widget.getId();
+                    log.debug("[INTERACTION-DEBUG] Widget ID: {}, checking for special interface types", widgetId);
+                } catch (Exception e) {
+                    log.debug("[INTERACTION-DEBUG] Error checking widget ID: {}", e.getMessage());
+                }
+            }
+            
+            // Try to get target name from menu entry for interface clicks
+            String target = menuEntry.getTarget();
+            if (target != null && !target.trim().isEmpty()) {
+                String cleanTarget = cleanTargetName(target);
+                if (cleanTarget != null && !cleanTarget.trim().isEmpty()) {
+                    log.debug("[INTERACTION-DEBUG] Using cleaned target as widget name: '{}'", cleanTarget);
+                    return cleanTarget;
+                }
+            }
+            
+        } catch (Exception e) {
+            log.debug("[INTERACTION-DEBUG] Error getting interface widget name: {}", e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    /**
+     * ENHANCED: Resolve interaction target names with comprehensive ItemManager integration
+     */
+    private String resolveInteractionTargetName(MenuOptionClicked menuClick) {
+        if (menuClick == null || menuClick.getMenuEntry() == null) return "Unknown_Interaction";
+        
+        MenuEntry menuEntry = menuClick.getMenuEntry();
+        String targetType = classifyTargetType(menuEntry);
+        
+        // First try the standard resolution method
+        String resolvedName = resolveTargetName(menuEntry, targetType);
+        
+        // If we got a proper name (not a fallback), return it
+        if (resolvedName != null && !resolvedName.startsWith("Item_") && !resolvedName.startsWith("Unknown_") 
+            && !resolvedName.startsWith("Object_") && !resolvedName.trim().isEmpty()) {
+            log.debug("[INTERACTION-DEBUG] Standard resolution successful: {} -> {}", targetType, resolvedName);
+            return resolvedName;
+        }
+        
+        // Enhanced fallback for items - try to get more details
+        if (targetType.contains("ITEM") && menuEntry.getIdentifier() > 0) {
+            String itemName = getItemName(menuEntry.getIdentifier());
+            if (itemName != null && !itemName.startsWith("Item_")) {
+                log.debug("[INTERACTION-DEBUG] Enhanced ItemManager resolution: {} -> {}", menuEntry.getIdentifier(), itemName);
+                return itemName;
+            }
+        }
+        
+        // Last resort - use cleaned target name from MenuEntry
+        String fallback = cleanTargetName(menuEntry.getTarget());
+        if (fallback != null && !fallback.trim().isEmpty()) {
+            log.debug("[INTERACTION-DEBUG] Using cleaned target name: {}", fallback);
+            return fallback;
+        }
+        
+        // Ultimate fallback
+        return targetType + "_" + menuEntry.getIdentifier();
+    }
+    
+    /**
+     * ENHANCED: Get item name from ID using ItemManager with robust fallback handling
      */
     private String getItemName(int itemId)
     {
-        if (itemId <= 0 || itemManager == null) return null;
+        if (itemId <= 0) {
+            return "Invalid_Item"; // Better than null
+        }
+        
+        if (itemManager == null) {
+            log.debug("[INTERACTION-DEBUG] ItemManager is null, falling back to hardcoded ID");
+            return "Item_" + itemId;
+        }
         
         try {
             ItemComposition itemComp = itemManager.getItemComposition(itemId);
-            return itemComp != null ? itemComp.getName() : null;
+            if (itemComp != null) {
+                String itemName = itemComp.getName();
+                if (itemName != null && !itemName.trim().isEmpty()) {
+                    log.debug("[INTERACTION-DEBUG] ItemManager resolved item {} -> '{}'", itemId, itemName);
+                    return itemName;
+                }
+            }
+            
+            // Fallback when ItemComposition is null or name is empty
+            log.debug("[INTERACTION-DEBUG] ItemManager returned null/empty for item {}, using fallback", itemId);
+            return "Item_" + itemId;
         } catch (Exception e) {
-            log.debug("Failed to get item name for ID {}: {}", itemId, e.getMessage());
-            return null;
+            log.debug("[INTERACTION-DEBUG] Failed to get item name for ID {}: {}, using fallback", itemId, e.getMessage());
+            return "Item_" + itemId;
         }
     }
     
@@ -2312,6 +2483,39 @@ public class DataCollectionManager
         if (objectId == 1533) return "Fishing spot (Tuna/Swordfish)";
         if (objectId == 1534) return "Fishing spot (Lobster)";
         if (objectId == 1535) return "Fishing spot (Shark)";
+        
+        // ENHANCED: Additional common interactive objects for interactions
+        // Training dummies and combat objects
+        if (objectId == 7891) return "Training dummy";
+        if (objectId == 23068) return "Combat dummy";
+        
+        // Common shops and NPCs (as objects)
+        if (objectId == 2783) return "Shop counter";
+        if (objectId == 6084) return "Shop stall";
+        
+        // Teleportation objects
+        if (objectId == 1337) return "Portal";
+        if (objectId == 4156) return "Spirit tree";
+        if (objectId == 26646) return "Fairy ring";
+        
+        // Common containers and storage
+        if (objectId == 375) return "Chest";
+        if (objectId == 378) return "Crate";
+        if (objectId == 579) return "Barrel";
+        
+        // Crafting and skilling objects
+        if (objectId == 6) return "Lectern";
+        if (objectId == 13405) return "Study desk";
+        if (objectId == 4874) return "Bookshelf";
+        
+        // Farm patches and farming
+        if (objectId >= 8550 && objectId <= 8560) return "Farming patch";
+        if (objectId == 7848) return "Compost bin";
+        
+        // Transportation
+        if (objectId == 17068) return "Canoe";
+        if (objectId == 2600) return "Boat";
+        if (objectId == 14304) return "Ship";
         
         return null; // No common mapping found
     }
@@ -2718,24 +2922,28 @@ public class DataCollectionManager
                 return InteractionData.builder().build();
             }
             
-            // Only consider interactions from the last 10 seconds to avoid stale data (same as hitsplats)
+            // FIXED: Use different time windows for different purposes to prevent timestamp repetition
             long currentTime = System.currentTimeMillis();
-            long timeThreshold = currentTime - 10000; // 10 seconds
+            long analysisTimeThreshold = currentTime - 10000; // 10 seconds for analysis/counting
+            long currentInteractionThreshold = currentTime - 2000; // 2 seconds for "last interaction" timestamp
             
-            // Collect recent interaction changes (time-filtered)
+            // FIXED: Clean up expired interactions to prevent stale timestamp issues
+            cleanupExpiredInteractions(analysisTimeThreshold);
+            
+            // Collect recent interaction changes (10-second window for analysis)
             List<InteractingChanged> recentActorInteractions = new ArrayList<>();
             for (TimestampedInteractionChanged timestampedInteraction : recentInteractionChanges) {
                 if (timestampedInteraction != null && timestampedInteraction.getInteraction() != null &&
-                    timestampedInteraction.getTimestamp() >= timeThreshold) {
+                    timestampedInteraction.getTimestamp() >= analysisTimeThreshold) {
                     recentActorInteractions.add(timestampedInteraction.getInteraction());
                 }
             }
             
-            // Collect recent menu interactions (time-filtered)
+            // Collect recent menu interactions (10-second window for analysis)
             List<MenuOptionClicked> recentMenuClicks = new ArrayList<>();
             for (TimestampedMenuOptionClicked timestampedMenuClick : recentMenuInteractions) {
                 if (timestampedMenuClick != null && timestampedMenuClick.getMenuClick() != null &&
-                    timestampedMenuClick.getTimestamp() >= timeThreshold) {
+                    timestampedMenuClick.getTimestamp() >= analysisTimeThreshold) {
                     recentMenuClicks.add(timestampedMenuClick.getMenuClick());
                 }
             }
@@ -2754,37 +2962,89 @@ public class DataCollectionManager
             Long lastInteractionTime = null;
             String mostCommonInteraction = null;
             
-            // Find the most recent interaction from either source
-            TimestampedInteractionChanged lastActorInteraction = null;
+            // FIXED: Find CURRENT interactions using shorter time window to prevent timestamp repetition
+            TimestampedInteractionChanged currentActorInteraction = null;
             for (TimestampedInteractionChanged timestampedInteraction : recentInteractionChanges) {
-                if (timestampedInteraction != null && timestampedInteraction.getTimestamp() >= timeThreshold) {
-                    if (lastActorInteraction == null || timestampedInteraction.getTimestamp() > lastActorInteraction.getTimestamp()) {
-                        lastActorInteraction = timestampedInteraction;
+                if (timestampedInteraction != null && timestampedInteraction.getTimestamp() >= currentInteractionThreshold) {
+                    if (currentActorInteraction == null || timestampedInteraction.getTimestamp() > currentActorInteraction.getTimestamp()) {
+                        currentActorInteraction = timestampedInteraction;
                     }
                 }
             }
             
-            TimestampedMenuOptionClicked lastMenuInteraction = null;
+            TimestampedMenuOptionClicked currentMenuInteraction = null;
             for (TimestampedMenuOptionClicked timestampedMenuClick : recentMenuInteractions) {
-                if (timestampedMenuClick != null && timestampedMenuClick.getTimestamp() >= timeThreshold) {
-                    if (lastMenuInteraction == null || timestampedMenuClick.getTimestamp() > lastMenuInteraction.getTimestamp()) {
-                        lastMenuInteraction = timestampedMenuClick;
+                if (timestampedMenuClick != null && timestampedMenuClick.getTimestamp() >= currentInteractionThreshold) {
+                    if (currentMenuInteraction == null || timestampedMenuClick.getTimestamp() > currentMenuInteraction.getTimestamp()) {
+                        currentMenuInteraction = timestampedMenuClick;
                     }
                 }
             }
             
-            // Determine which is more recent - actor or menu interaction
-            if (lastMenuInteraction != null && (lastActorInteraction == null || 
-                lastMenuInteraction.getTimestamp() > lastActorInteraction.getTimestamp())) {
-                // Menu interaction is more recent
-                lastInteractionType = "object";
-                lastInteractionTarget = resolveTargetName(lastMenuInteraction.getMenuClick().getMenuEntry(), "object");
-                lastInteractionTime = lastMenuInteraction.getTimestamp();
-            } else if (lastActorInteraction != null) {
-                // Actor interaction is more recent
+            // FIXED: Only report interaction details for CURRENT interactions (within 2-second window)
+            if (currentMenuInteraction != null && (currentActorInteraction == null || 
+                currentMenuInteraction.getTimestamp() > currentActorInteraction.getTimestamp())) {
+                // Current menu interaction - use enhanced target name resolution
+                MenuEntry menuEntry = currentMenuInteraction.getMenuClick().getMenuEntry();
+                String targetType = classifyTargetType(menuEntry);
+                lastInteractionType = targetType.toLowerCase().replace("_", ""); // Convert GROUND_ITEM to grounditem
+                
+                // ENHANCED: Use comprehensive ItemManager integration for interaction target names
+                lastInteractionTarget = resolveInteractionTargetName(currentMenuInteraction.getMenuClick());
+                lastInteractionTime = currentMenuInteraction.getTimestamp();
+                
+                log.debug("[INTERACTION-DEBUG] Current menu interaction - Type: {}, Target: {}, Raw Option: {}, ID: {}, Time: {}", 
+                    lastInteractionType, lastInteractionTarget, menuEntry.getOption(), menuEntry.getIdentifier(), lastInteractionTime);
+            } else if (currentActorInteraction != null) {
+                // Current actor interaction
                 lastInteractionType = "combat";
                 lastInteractionTarget = targetName;
-                lastInteractionTime = lastActorInteraction.getTimestamp();
+                lastInteractionTime = currentActorInteraction.getTimestamp();
+                
+                log.debug("[INTERACTION-DEBUG] Current combat interaction - Target: {}, Time: {}", lastInteractionTarget, lastInteractionTime);
+            } else {
+                // No current interactions - try to get from longer analysis window but set lastInteractionTime to null
+                TimestampedMenuOptionClicked lastMenuInteraction = null;
+                TimestampedInteractionChanged lastActorInteraction = null;
+                
+                // Find most recent menu interaction from analysis window
+                for (TimestampedMenuOptionClicked timestampedMenuClick : recentMenuInteractions) {
+                    if (timestampedMenuClick != null && timestampedMenuClick.getTimestamp() >= analysisTimeThreshold) {
+                        if (lastMenuInteraction == null || timestampedMenuClick.getTimestamp() > lastMenuInteraction.getTimestamp()) {
+                            lastMenuInteraction = timestampedMenuClick;
+                        }
+                    }
+                }
+                
+                // Find most recent actor interaction from analysis window
+                for (TimestampedInteractionChanged timestampedInteraction : recentInteractionChanges) {
+                    if (timestampedInteraction != null && timestampedInteraction.getTimestamp() >= analysisTimeThreshold) {
+                        if (lastActorInteraction == null || timestampedInteraction.getTimestamp() > lastActorInteraction.getTimestamp()) {
+                            lastActorInteraction = timestampedInteraction;
+                        }
+                    }
+                }
+                
+                // Use the most recent interaction from analysis window but keep timestamp null
+                if (lastMenuInteraction != null && (lastActorInteraction == null || lastMenuInteraction.getTimestamp() > lastActorInteraction.getTimestamp())) {
+                    MenuEntry menuEntry = lastMenuInteraction.getMenuClick().getMenuEntry();
+                    String targetType = classifyTargetType(menuEntry);
+                    lastInteractionType = targetType.toLowerCase().replace("_", "");
+                    lastInteractionTarget = resolveInteractionTargetName(lastMenuInteraction.getMenuClick());
+                    lastInteractionTime = null; // Keep null to prevent stale timestamps
+                    
+                    log.debug("[INTERACTION-DEBUG] Using last menu interaction from analysis window - Type: {}, Target: {}, OriginalTime: {}", 
+                        lastInteractionType, lastInteractionTarget, lastMenuInteraction.getTimestamp());
+                } else if (lastActorInteraction != null) {
+                    lastInteractionType = "combat";
+                    lastInteractionTarget = targetName;
+                    lastInteractionTime = null; // Keep null to prevent stale timestamps
+                    
+                    log.debug("[INTERACTION-DEBUG] Using last actor interaction from analysis window - Target: {}, OriginalTime: {}", 
+                        lastInteractionTarget, lastActorInteraction.getTimestamp());
+                } else {
+                    log.debug("[INTERACTION-DEBUG] No interactions in analysis window - all fields remain null");
+                }
             }
             
             // Find most common interaction from recent menu clicks (time-filtered)
@@ -2809,14 +3069,14 @@ public class DataCollectionManager
                 
                 // Add actor interaction timestamps
                 for (TimestampedInteractionChanged timestampedInteraction : recentInteractionChanges) {
-                    if (timestampedInteraction != null && timestampedInteraction.getTimestamp() >= timeThreshold) {
+                    if (timestampedInteraction != null && timestampedInteraction.getTimestamp() >= analysisTimeThreshold) {
                         allTimestamps.add(timestampedInteraction.getTimestamp());
                     }
                 }
                 
                 // Add menu interaction timestamps
                 for (TimestampedMenuOptionClicked timestampedMenuClick : recentMenuInteractions) {
-                    if (timestampedMenuClick != null && timestampedMenuClick.getTimestamp() >= timeThreshold) {
+                    if (timestampedMenuClick != null && timestampedMenuClick.getTimestamp() >= analysisTimeThreshold) {
                         allTimestamps.add(timestampedMenuClick.getTimestamp());
                     }
                 }
@@ -2842,21 +3102,29 @@ public class DataCollectionManager
                 }
             }
             
-            // DEBUG: Log interaction data collection with time filtering info
+            // DEBUG: Enhanced logging with timestamp fix information
+            log.debug("[INTERACTION-DEBUG] FIXED Time windows - Analysis: {}s (total: {}), Current: {}s, LastTime: {}, Type: {}, Target: {}", 
+                (currentTime - analysisTimeThreshold) / 1000, totalInteractionCount, 
+                (currentTime - currentInteractionThreshold) / 1000, lastInteractionTime, 
+                lastInteractionType, lastInteractionTarget);
+            
             if (totalInteractionCount > 0) {
-                log.debug("[INTERACTION-DEBUG] Time-filtered ({}s window): Total: {}, Menu: {}, Actor: {}, Type: {}, Target: {}, AvgInterval: {}ms", 
-                    (currentTime - timeThreshold) / 1000, totalInteractionCount, recentMenuClicks.size(), 
-                    recentActorInteractions.size(), lastInteractionType, lastInteractionTarget, averageInteractionInterval);
+                log.debug("[INTERACTION-DEBUG] Analysis window details - Menu: {}, Actor: {}, AvgInterval: {}ms", 
+                    recentMenuClicks.size(), recentActorInteractions.size(), averageInteractionInterval);
             }
             
+            // ENHANCED: Build rich JSONB directly with timestamped interactions for accurate data
+            String enrichedJsonb = buildEnhancedInteractionsJsonb();
+
             return InteractionData.builder()
                 .currentTarget(targetName)
                 .interactionType(interactionType)
                 .recentInteractions(recentActorInteractions) // Now time-filtered
+                .recentInteractionsJsonb(enrichedJsonb) // ENHANCED: Rich JSONB with timestamps and context
                 .interactionCount(totalInteractionCount) // Now time-filtered count
                 .lastInteractionType(lastInteractionType) // From most recent interaction
                 .lastInteractionTarget(lastInteractionTarget) // From most recent interaction
-                .lastInteractionTime(lastInteractionTime) // Accurate timestamp from wrapper
+                .lastInteractionTime(lastInteractionTime) // FIXED: Only set for current interactions, null prevents stale timestamps
                 .mostCommonInteraction(mostCommonInteraction) // From time-filtered data
                 .averageInteractionInterval(averageInteractionInterval) // Now properly calculated from time-filtered data
                 .build();
@@ -2864,6 +3132,204 @@ public class DataCollectionManager
             log.warn("Error collecting interaction data", e);
             return InteractionData.builder().build();
         }
+    }
+    
+    /**
+     * ENHANCED: Clean up expired interactions from the queue based on time threshold
+     */
+    private void cleanupExpiredInteractions(long timeThreshold) {
+        try {
+            // Remove expired interactions from the front of the queue
+            while (!recentInteractionChanges.isEmpty()) {
+                TimestampedInteractionChanged oldest = recentInteractionChanges.peek();
+                if (oldest != null && oldest.getTimestamp() < timeThreshold) {
+                    recentInteractionChanges.poll(); // Remove expired interaction
+                    log.debug("[INTERACTION-DEBUG] Removed expired interaction from {} ms ago", 
+                        System.currentTimeMillis() - oldest.getTimestamp());
+                } else {
+                    break; // No more expired interactions
+                }
+            }
+        } catch (Exception e) {
+            log.debug("[INTERACTION-DEBUG] Error during interaction cleanup: {}", e.getMessage());
+        }
+    }
+    
+    /**
+     * ENHANCED: Build rich JSONB structure with accurate timestamps and comprehensive context
+     */
+    private String buildEnhancedInteractionsJsonb() {
+        try {
+            long currentTime = System.currentTimeMillis();
+            long analysisTimeThreshold = currentTime - 10000; // 10-second window for JSONB analysis
+            
+            // FIXED: Clean up expired interactions from the queue first
+            cleanupExpiredInteractions(analysisTimeThreshold);
+            
+            StringBuilder json = new StringBuilder("[");
+            boolean first = true;
+            
+            // Process timestamped interaction changes with rich context
+            for (TimestampedInteractionChanged timestampedInteraction : recentInteractionChanges) {
+                if (timestampedInteraction != null && timestampedInteraction.getInteraction() != null &&
+                    timestampedInteraction.getTimestamp() >= analysisTimeThreshold) {
+                    
+                    if (!first) json.append(",");
+                    first = false;
+                    
+                    InteractingChanged interaction = timestampedInteraction.getInteraction();
+                    long actualTimestamp = timestampedInteraction.getTimestamp();
+                    
+                    // Enhanced actor information with comprehensive context
+                    String sourceName = "";
+                    String targetName = "";
+                    String sourceType = "unknown";
+                    String targetType = "unknown";
+                    int sourceCombatLevel = 0;
+                    int targetCombatLevel = 0;
+                    String interactionContext = "unknown";
+                    
+                    if (interaction.getSource() != null) {
+                        if (interaction.getSource().getName() != null) {
+                            sourceName = interaction.getSource().getName();
+                        }
+                        sourceType = interaction.getSource() instanceof net.runelite.api.Player ? "player" : "npc";
+                        sourceCombatLevel = interaction.getSource().getCombatLevel();
+                    }
+                    
+                    if (interaction.getTarget() != null) {
+                        if (interaction.getTarget().getName() != null) {
+                            targetName = interaction.getTarget().getName();
+                        }
+                        targetType = interaction.getTarget() instanceof net.runelite.api.Player ? "player" : "npc";
+                        targetCombatLevel = interaction.getTarget().getCombatLevel();
+                        interactionContext = "engaged";
+                    } else {
+                        interactionContext = "disengaged";
+                    }
+                    
+                    // Build enhanced JSONB entry with rich context
+                    json.append("{")
+                        .append("\"source\":\"").append(sourceName).append("\",")
+                        .append("\"target\":\"").append(targetName).append("\",")
+                        .append("\"source_type\":\"").append(sourceType).append("\",")
+                        .append("\"target_type\":\"").append(targetType).append("\",")
+                        .append("\"source_combat_level\":").append(sourceCombatLevel).append(",")
+                        .append("\"target_combat_level\":").append(targetCombatLevel).append(",")
+                        .append("\"interaction_context\":\"").append(interactionContext).append("\",")
+                        .append("\"duration_ms\":").append(currentTime - actualTimestamp).append(",")
+                        .append("\"timestamp\":").append(actualTimestamp) // FIXED: Actual interaction timestamp
+                        .append("}");
+                }
+            }
+            
+            json.append("]");
+            String result = json.toString();
+            
+            log.debug("[INTERACTION-DEBUG] Enhanced JSONB built with {} interactions, length: {} chars", 
+                first ? 0 : json.toString().split(",").length, result.length());
+            
+            return result;
+        } catch (Exception e) {
+            log.warn("Error building enhanced interactions JSONB", e);
+            return "[]";
+        }
+    }
+    
+    /**
+     * ENHANCED: Build interface-click correlation data by matching interface interactions with recent click context
+     */
+    private String buildInterfaceClickCorrelation(int interfaceInteractionCount, String primaryInterface) {
+        try {
+            if (interfaceInteractionCount == 0) {
+                return "{}"; // No interface interactions this tick
+            }
+            
+            long currentTime = System.currentTimeMillis();
+            long correlationWindow = currentTime - 1000; // 1-second correlation window
+            
+            StringBuilder correlation = new StringBuilder("{");
+            correlation.append("\"interface_interactions\":").append(interfaceInteractionCount);
+            correlation.append(",\"primary_interface\":\"").append(primaryInterface != null ? primaryInterface : "none").append("\"");
+            
+            // Find recent interface-related clicks
+            int recentInterfaceClicks = 0;
+            String lastInterfaceClick = null;
+            String lastClickTarget = null;
+            long lastClickTime = 0;
+            
+            for (TimestampedMenuOptionClicked timestampedClick : recentMenuInteractions) {
+                if (timestampedClick != null && timestampedClick.getTimestamp() >= correlationWindow) {
+                    MenuOptionClicked click = timestampedClick.getMenuClick();
+                    if (click != null && isInterfaceInteraction(click)) {
+                        recentInterfaceClicks++;
+                        if (timestampedClick.getTimestamp() > lastClickTime) {
+                            lastClickTime = timestampedClick.getTimestamp();
+                            lastInterfaceClick = click.getMenuEntry().getOption();
+                            
+                            // ENHANCED: Use proper target name resolution for interface clicks
+                            MenuEntry menuEntry = click.getMenuEntry();
+                            String targetType = classifyTargetType(menuEntry);
+                            String resolvedTarget = resolveTargetName(menuEntry, targetType);
+                            lastClickTarget = resolvedTarget != null ? resolvedTarget : 
+                                (menuEntry.getTarget() != null ? cleanTargetName(menuEntry.getTarget()) : "");
+                        }
+                    }
+                }
+            }
+            
+            correlation.append(",\"recent_interface_clicks\":").append(recentInterfaceClicks);
+            
+            if (lastInterfaceClick != null) {
+                correlation.append(",\"last_interface_click\":\"").append(lastInterfaceClick).append("\"");
+                correlation.append(",\"last_click_target\":\"").append(lastClickTarget != null ? lastClickTarget : "").append("\"");
+                correlation.append(",\"click_age_ms\":").append(currentTime - lastClickTime);
+            }
+            
+            // Calculate correlation quality
+            double correlationScore = calculateCorrelationScore(interfaceInteractionCount, recentInterfaceClicks);
+            correlation.append(",\"correlation_score\":").append(String.format("%.2f", correlationScore));
+            correlation.append(",\"correlation_status\":\"").append(getCorrelationStatus(correlationScore)).append("\"");
+            
+            correlation.append("}");
+            
+            String result = correlation.toString();
+            log.debug("[INTERFACE-DEBUG] Interface-click correlation built: {}", result);
+            return result;
+            
+        } catch (Exception e) {
+            log.warn("Error building interface-click correlation", e);
+            return "{\"error\":\"correlation_failed\"}";
+        }
+    }
+    
+    /**
+     * ENHANCED: Calculate correlation score between interface interactions and click context
+     */
+    private double calculateCorrelationScore(int interfaceInteractions, int interfaceClicks) {
+        if (interfaceInteractions == 0 && interfaceClicks == 0) {
+            return 1.0; // Perfect correlation (no activity)
+        }
+        
+        if (interfaceInteractions == 0 || interfaceClicks == 0) {
+            return 0.0; // No correlation (mismatch)
+        }
+        
+        // Calculate correlation based on how closely the counts match
+        int diff = Math.abs(interfaceInteractions - interfaceClicks);
+        int max = Math.max(interfaceInteractions, interfaceClicks);
+        return Math.max(0.0, 1.0 - (double) diff / max);
+    }
+    
+    /**
+     * ENHANCED: Get correlation status description
+     */
+    private String getCorrelationStatus(double score) {
+        if (score >= 0.9) return "excellent";
+        if (score >= 0.7) return "good";
+        if (score >= 0.5) return "fair";
+        if (score >= 0.3) return "poor";
+        return "very_poor";
     }
     
     /**
@@ -3023,9 +3489,6 @@ public class DataCollectionManager
         ChatData chatData = collectRealChatData();
         builder.chatData(chatData);
         
-        FriendsData friendsData = collectRealFriendsData();
-        builder.friendsData(friendsData);
-        
         ClanData clanData = collectRealClanData();
         builder.clanData(clanData);
         
@@ -3114,49 +3577,6 @@ public class DataCollectionManager
         } catch (Exception e) {
             log.warn("Error collecting chat data", e);
             return ChatData.builder().build();
-        }
-    }
-    
-    /**
-     * Collect real friends data
-     */
-    private FriendsData collectRealFriendsData()
-    {
-        try {
-            // Get friends list from client
-            NameableContainer<Friend> friendsContainer = client.getFriendContainer();
-            if (friendsContainer == null) {
-                return FriendsData.builder().totalFriends(0).onlineFriends(0).build();
-            }
-            
-            List<String> friendsList = new ArrayList<>();
-            int totalFriends = 0;
-            int onlineFriends = 0;
-            
-            // Process friends data
-            for (Friend friend : friendsContainer.getMembers()) {
-                if (friend != null) {
-                    friendsList.add(friend.getName());
-                    totalFriends++;
-                    
-                    if (friend.getWorld() > 0) {
-                        onlineFriends++;
-                    }
-                }
-            }
-            
-            return FriendsData.builder()
-                .friendsList(friendsList)
-                .totalFriends(totalFriends)
-                .onlineFriends(onlineFriends)
-                .offlineFriends(totalFriends - onlineFriends)
-                .friendsListCapacity(friendsContainer != null ? friendsContainer.getMembers().length : 0)
-                // .recentFriendActivity(getRecentFriendActivity()) // Field not available
-                .build();
-                
-        } catch (Exception e) {
-            log.warn("Error collecting friends data", e);
-            return FriendsData.builder().totalFriends(0).onlineFriends(0).build();
         }
     }
     
@@ -3310,11 +3730,68 @@ public class DataCollectionManager
                 }
             }
             
+            // ENHANCED: Check additional interfaces using new detection methods
+            boolean bankOpen = isBankInterface();
+            boolean shopOpen = isShopInterface();  
+            boolean tradeOpen = isTradeInterface();
+            boolean geOpen = isGrandExchangeInterface();
+            boolean equipmentOpen = isEquipmentInterface();
+            
+            // Add detected interfaces to the lists
+            if (bankOpen) {
+                openInterfaces.add("bank");
+                totalOpenInterfaces++;
+                if (primaryInterface == null) primaryInterface = "bank";
+                log.debug("[INTERFACE-DEBUG] Bank interface added to interface data");
+            }
+            if (shopOpen) {
+                openInterfaces.add("shop");
+                totalOpenInterfaces++;
+                if (primaryInterface == null) primaryInterface = "shop";
+                log.debug("[INTERFACE-DEBUG] Shop interface added to interface data");
+            }
+            if (tradeOpen) {
+                openInterfaces.add("trade");
+                totalOpenInterfaces++;
+                if (primaryInterface == null) primaryInterface = "trade";
+                log.debug("[INTERFACE-DEBUG] Trade interface added to interface data");
+            }
+            if (geOpen) {
+                openInterfaces.add("grandexchange");
+                totalOpenInterfaces++;
+                if (primaryInterface == null) primaryInterface = "grandexchange";
+                log.debug("[INTERFACE-DEBUG] Grand Exchange interface added to interface data");
+            }
+            if (equipmentOpen) {
+                openInterfaces.add("equipment");
+                totalOpenInterfaces++;
+                if (primaryInterface == null) primaryInterface = "equipment";
+                log.debug("[INTERFACE-DEBUG] Equipment interface added to interface data");
+            }
+            
+            // ENHANCED: Detect current interface tab for detailed state tracking
+            String currentInterfaceTab = detectCurrentInterfaceTab(primaryInterface);
+            if (currentInterfaceTab != null) {
+                log.debug("[INTERFACE-DEBUG] Detected interface tab: {} for interface: {}", currentInterfaceTab, primaryInterface);
+            }
+            
+            // ENHANCED: Get interface interaction count for this tick and reset counter
+            int interfaceInteractionCount = getAndResetInterfaceInteractionCount();
+            if (interfaceInteractionCount > 0) {
+                log.debug("[INTERFACE-DEBUG] Interface interactions this tick: {}", interfaceInteractionCount);
+            }
+            
+            // ENHANCED: Build interface-click correlation data
+            String interfaceClickCorrelation = buildInterfaceClickCorrelation(interfaceInteractionCount, primaryInterface);
+            
             return InterfaceData.builder()
                 .openInterfaces(openInterfaces)
                 .visibleWidgets(visibleWidgets)
                 .totalOpenInterfaces(totalOpenInterfaces)
                 .primaryInterface(primaryInterface)
+                .currentInterfaceTab(currentInterfaceTab) // ENHANCED: Include interface tab data
+                .interfaceInteractionCount(interfaceInteractionCount) // ENHANCED: Include interaction count
+                .interfaceClickCorrelation(interfaceClickCorrelation) // ENHANCED: Click correlation data
                 .chatboxOpen(isChatboxInterface())
                 .inventoryOpen(isInventoryInterface())
                 .skillsInterfaceOpen(isSkillsInterface())
@@ -3390,12 +3867,33 @@ public class DataCollectionManager
     private ShopData collectRealShopData()
     {
         try {
-            Widget shopWidget = null; // WidgetInfo.SHOP_ITEMS not available in this API version
-            boolean inShop = shopWidget != null && !shopWidget.isHidden();
+            // ENHANCED: Use our new shop interface detection method
+            boolean inShop = isShopInterface();
             
             if (!inShop) {
                 return ShopData.builder()
                     .inShop(false)
+                    .build();
+            }
+            
+            log.debug("[INTERFACE-DEBUG] Shop interface detected, collecting shop data");
+            
+            // Try to find shop widget using widget group ID
+            Widget shopWidget = null;
+            for (Widget rootWidget : client.getWidgetRoots()) {
+                if (rootWidget != null && !rootWidget.isHidden()) {
+                    int groupId = rootWidget.getId() >> 16;
+                    if (groupId == RuneliteAIConstants.SHOP_INTERFACE_WIDGET_ID) {
+                        shopWidget = rootWidget;
+                        break;
+                    }
+                }
+            }
+            
+            if (shopWidget == null) {
+                log.debug("[INTERFACE-DEBUG] Shop interface detected but widget not found, returning basic data");
+                return ShopData.builder()
+                    .inShop(true)
                     .build();
             }
             
@@ -4324,10 +4822,10 @@ public class DataCollectionManager
         return null;
     }
     
-    // Helper methods for interface data
+    // ENHANCED: Helper methods for interface data using comprehensive RuneliteAIConstants
     private String getInterfaceType(int widgetId)
     {
-        // Map common widget IDs to interface types
+        // Map widget IDs to interface types using proper constants
         switch (widgetId >> 16) { // Get group ID
             case RuneliteAIConstants.INVENTORY_WIDGET_GROUP: return "inventory";
             case RuneliteAIConstants.SKILLS_WIDGET_GROUP: return "skills";
@@ -4341,10 +4839,14 @@ public class DataCollectionManager
             case RuneliteAIConstants.BANK_INTERFACE_WIDGET_ID: return "bank";
             case RuneliteAIConstants.SHOP_INTERFACE_WIDGET_ID: return "shop";
             case RuneliteAIConstants.DIALOGUE_WIDGET_GROUP: return "dialogue";
-            case 270: return "trade";
+            case RuneliteAIConstants.TRADE_SCREEN_WIDGET_ID: return "trade"; // FIXED: was hardcoded as 270
+            case RuneliteAIConstants.GE_INTERFACE_WIDGET_ID: return "grandexchange"; // ENHANCED: added GE support
             case RuneliteAIConstants.DUELING_WIDGET_GROUP: return "dueling";
             case RuneliteAIConstants.EQUIPMENT_WIDGET_GROUP: return "equipment";
-            default: return "unknown";
+            default: 
+                // ENHANCED: Log unknown widget IDs for debugging
+                log.debug("[INTERFACE-DEBUG] Unknown widget group ID: {} (widget ID: {})", widgetId >> 16, widgetId);
+                return "unknown";
         }
     }
     
@@ -4374,8 +4876,283 @@ public class DataCollectionManager
     
     private boolean isSettingsInterface()
     {
-        Widget settings = null; // WidgetInfo.OPTIONS_MENU not available in this API version
-        return settings != null && !settings.isHidden();
+        // ENHANCED: Use widget group ID detection instead of unavailable WidgetInfo constant
+        try {
+            for (Widget rootWidget : client.getWidgetRoots()) {
+                if (rootWidget != null && !rootWidget.isHidden()) {
+                    int groupId = rootWidget.getId() >> 16;
+                    if (groupId == RuneliteAIConstants.SETTINGS_WIDGET_GROUP) {
+                        log.debug("[INTERFACE-DEBUG] Settings interface detected: widget ID {}", rootWidget.getId());
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting settings interface: {}", e.getMessage());
+        }
+        return false;
+    }
+    
+    // ENHANCED: Additional interface detection methods using widget group IDs
+    private boolean isBankInterface()
+    {
+        try {
+            // Check for bank PIN interface first
+            Widget bankPinWidget = client.getWidget(WidgetInfo.BANK_PIN_CONTAINER);
+            if (bankPinWidget != null && !bankPinWidget.isHidden()) {
+                log.debug("[INTERFACE-DEBUG] Bank PIN interface detected");
+                return true;
+            }
+            
+            // Check for main bank interface using widget group ID
+            for (Widget rootWidget : client.getWidgetRoots()) {
+                if (rootWidget != null && !rootWidget.isHidden()) {
+                    int groupId = rootWidget.getId() >> 16;
+                    if (groupId == RuneliteAIConstants.BANK_INTERFACE_WIDGET_ID) {
+                        log.debug("[INTERFACE-DEBUG] Bank interface detected: widget ID {}", rootWidget.getId());
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting bank interface: {}", e.getMessage());
+        }
+        return false;
+    }
+    
+    private boolean isShopInterface()
+    {
+        try {
+            for (Widget rootWidget : client.getWidgetRoots()) {
+                if (rootWidget != null && !rootWidget.isHidden()) {
+                    int groupId = rootWidget.getId() >> 16;
+                    if (groupId == RuneliteAIConstants.SHOP_INTERFACE_WIDGET_ID) {
+                        log.debug("[INTERFACE-DEBUG] Shop interface detected: widget ID {}", rootWidget.getId());
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting shop interface: {}", e.getMessage());
+        }
+        return false;
+    }
+    
+    private boolean isTradeInterface()
+    {
+        try {
+            for (Widget rootWidget : client.getWidgetRoots()) {
+                if (rootWidget != null && !rootWidget.isHidden()) {
+                    int groupId = rootWidget.getId() >> 16;
+                    if (groupId == RuneliteAIConstants.TRADE_SCREEN_WIDGET_ID) {
+                        log.debug("[INTERFACE-DEBUG] Trade interface detected: widget ID {}", rootWidget.getId());
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting trade interface: {}", e.getMessage());
+        }
+        return false;
+    }
+    
+    private boolean isGrandExchangeInterface()
+    {
+        try {
+            for (Widget rootWidget : client.getWidgetRoots()) {
+                if (rootWidget != null && !rootWidget.isHidden()) {
+                    int groupId = rootWidget.getId() >> 16;
+                    if (groupId == RuneliteAIConstants.GE_INTERFACE_WIDGET_ID) {
+                        log.debug("[INTERFACE-DEBUG] Grand Exchange interface detected: widget ID {}", rootWidget.getId());
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting GE interface: {}", e.getMessage());
+        }
+        return false;
+    }
+    
+    private boolean isEquipmentInterface()
+    {
+        try {
+            for (Widget rootWidget : client.getWidgetRoots()) {
+                if (rootWidget != null && !rootWidget.isHidden()) {
+                    int groupId = rootWidget.getId() >> 16;
+                    if (groupId == RuneliteAIConstants.EQUIPMENT_WIDGET_GROUP) {
+                        log.debug("[INTERFACE-DEBUG] Equipment interface detected: widget ID {}", rootWidget.getId());
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting equipment interface: {}", e.getMessage());
+        }
+        return false;
+    }
+    
+    // ENHANCED: Interface tab detection methods for detailed state tracking
+    private String detectCurrentInterfaceTab(String primaryInterface) {
+        if (primaryInterface == null) return null;
+        
+        try {
+            switch (primaryInterface) {
+                case "spellbook":
+                    return detectSpellbookTab();
+                case "prayer":
+                    return detectPrayerTab();
+                case "combat":
+                    return detectCombatTab();
+                case "skills":
+                    return detectSkillsTab();
+                case "settings":
+                    return detectSettingsTab();
+                case "quest":
+                    return detectQuestTab();
+                default:
+                    log.debug("[INTERFACE-DEBUG] No tab detection implemented for interface: {}", primaryInterface);
+                    return null;
+            }
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting interface tab for {}: {}", primaryInterface, e.getMessage());
+            return null;
+        }
+    }
+    
+    private String detectSpellbookTab() {
+        try {
+            // Use VarPlayer to detect current spellbook
+            int spellbook = client.getVar(RuneliteAIConstants.SPELLBOOK_VARP);
+            switch (spellbook) {
+                case RuneliteAIConstants.STANDARD_SPELLBOOK:
+                    return "Standard Spellbook";
+                case RuneliteAIConstants.ANCIENT_SPELLBOOK:
+                    return "Ancient Spellbook";
+                case RuneliteAIConstants.LUNAR_SPELLBOOK:
+                    return "Lunar Spellbook";
+                case RuneliteAIConstants.ARCEUUS_SPELLBOOK:
+                    return "Arceuus Spellbook";
+                default:
+                    log.debug("[INTERFACE-DEBUG] Unknown spellbook ID: {}", spellbook);
+                    return "Unknown Spellbook";
+            }
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting spellbook tab: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    private String detectPrayerTab() {
+        try {
+            // Check if quick prayers are active
+            boolean quickPrayersActive = client.getVar(RuneliteAIConstants.QUICK_PRAYER_VARP) == 1;
+            return quickPrayersActive ? "Quick Prayers" : "Regular Prayers";
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting prayer tab: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    private String detectCombatTab() {
+        try {
+            // Detect combat style/attack mode
+            Player localPlayer = client.getLocalPlayer();
+            if (localPlayer != null) {
+                // Try to determine combat style from player's current combat stance
+                // This is a simplified implementation - could be enhanced with weapon type detection
+                return "Attack Style"; // Generic for now - could be expanded to detect specific styles
+            }
+            return null;
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting combat tab: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    private String detectSkillsTab() {
+        try {
+            // In the skills interface, tabs could represent different skill categories
+            // This could be expanded to detect if viewing specific skill details
+            return "All Skills"; // Generic implementation
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting skills tab: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    private String detectSettingsTab() {
+        try {
+            // Settings interface has multiple tabs (Display, Audio, Controls, etc.)
+            // This would require widget inspection to determine which tab is active
+            return "Settings Tab"; // Generic implementation - could be enhanced
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting settings tab: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    private String detectQuestTab() {
+        try {
+            // Quest interface might have different views (All, In Progress, Completed)
+            return "Quest List"; // Generic implementation
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting quest tab: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    // ENHANCED: Interface interaction detection and counting methods
+    private boolean isInterfaceInteraction(MenuOptionClicked event) {
+        if (event == null || event.getMenuEntry() == null) return false;
+        
+        try {
+            MenuEntry menuEntry = event.getMenuEntry();
+            String menuAction = menuEntry.getType() != null ? menuEntry.getType().name() : "";
+            
+            // ENHANCED: Check if the action indicates interface interaction
+            if (menuAction.contains("WIDGET") || menuAction.contains("INTERFACE") || menuAction.contains("BUTTON") ||
+                menuAction.contains("CC_OP") || menuAction.startsWith("WIDGET_") || menuAction.equals("CC_OP")) {
+                return true;
+            }
+            
+            // Check specific interface-related actions
+            String option = menuEntry.getOption();
+            if (option != null) {
+                option = option.toLowerCase();
+                // Interface-related actions
+                if (option.contains("close") || option.contains("open") || option.contains("select") || 
+                    option.contains("cast") || option.contains("activate") || option.contains("toggle") ||
+                    option.contains("switch") || option.contains("change")) {
+                    return true;
+                }
+            }
+            
+            // Check for clicks on interface widgets using widget info
+            String widgetInfo = getWidgetInfo(menuEntry);
+            if (widgetInfo != null && !widgetInfo.isEmpty()) {
+                return true;
+            }
+            
+            return false;
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error checking interface interaction: {}", e.getMessage());
+            return false;
+        }
+    }
+    
+    private void incrementInterfaceInteractionCount(MenuOptionClicked event) {
+        if (isInterfaceInteraction(event)) {
+            currentTickInterfaceInteractions++;
+            log.debug("[INTERFACE-DEBUG] Interface interaction detected, count: {} - Action: {}", 
+                currentTickInterfaceInteractions, event.getMenuEntry().getOption());
+        }
+    }
+    
+    private int getAndResetInterfaceInteractionCount() {
+        int count = currentTickInterfaceInteractions;
+        currentTickInterfaceInteractions = 0; // Reset for next tick
+        return count;
     }
     
     private String getDialogueType()
@@ -4389,9 +5166,31 @@ public class DataCollectionManager
     
     private String getShopName()
     {
-        Widget shopNameWidget = null; // WidgetInfo.SHOP_NAME not available in this API version
-        if (shopNameWidget != null && !shopNameWidget.isHidden()) {
-            return shopNameWidget.getText();
+        // ENHANCED: Attempt to find shop name widget using widget scanning
+        try {
+            for (Widget rootWidget : client.getWidgetRoots()) {
+                if (rootWidget != null && !rootWidget.isHidden()) {
+                    int groupId = rootWidget.getId() >> 16;
+                    if (groupId == RuneliteAIConstants.SHOP_INTERFACE_WIDGET_ID) {
+                        // Look for child widgets that might contain the shop name
+                        if (rootWidget.getChildren() != null) {
+                            for (Widget child : rootWidget.getChildren()) {
+                                if (child != null && child.getText() != null && !child.getText().trim().isEmpty()) {
+                                    String text = child.getText().trim();
+                                    // Shop names are typically longer than a few characters and contain letters
+                                    if (text.length() > 3 && text.matches(".*[a-zA-Z].*")) {
+                                        log.debug("[INTERFACE-DEBUG] Found potential shop name: {}", text);
+                                        return text;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("[INTERFACE-DEBUG] Error detecting shop name: {}", e.getMessage());
         }
         return "Unknown Shop";
     }
