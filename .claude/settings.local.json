@@ -2,6 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(./test-multiline.sh)",
+      "Bash(*)",
       "Bash(mkdir:*)",
       "Bash(bash \"C:\\Users\\gamer\\.claude\\statusline-command.sh\")",
       "Bash(mvn clean:*)",
@@ -46,7 +47,8 @@
       "Bash(\"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\" -U postgres -h localhost -p 5432 -d runelite_ai -c \"\\dt\")",
       "Bash(PGPASSWORD=sam11773 \"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\" -U postgres -h localhost -p 5432 -d runelite_ai -c \"\\dt\")",
       "Bash(PGPASSWORD=sam11773 \"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\" -U postgres -h localhost -p 5432 -d runelite_ai -c \"SELECT tick_number, special_attack_percent, in_combat, auto_retaliate, combat_style FROM player_vitals WHERE special_attack_percent != 100 OR in_combat = true ORDER BY tick_number DESC LIMIT 10;\")",
-      "Bash(PGPASSWORD=sam11773 \"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\" -U postgres -h localhost -p 5432 -d runelite_ai -c \"SELECT table_name, column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_schema = ''public'' ORDER BY table_name, ordinal_position;\" -o table_schema.txt)"
+      "Bash(PGPASSWORD=sam11773 \"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\" -U postgres -h localhost -p 5432 -d runelite_ai -c \"SELECT table_name, column_name, data_type, is_nullable, column_default FROM information_schema.columns WHERE table_schema = ''public'' ORDER BY table_name, ordinal_position;\" -o table_schema.txt)",
+      "Bash(PGPASSWORD=sam11773 \"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\" -U postgres -h localhost -p 5432 -d runelite_ai -c \"\\d interface_data\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\gamer",

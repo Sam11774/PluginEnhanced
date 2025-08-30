@@ -1309,9 +1309,9 @@ public class DatabaseManager
                     stmt.setString(11, interactions.getCurrentTarget());
                     stmt.setString(12, interactions.getInteractionType());
                     
-                    // Recent interactions stored as JSONB
-                    stmt.setString(13, interactions.getRecentInteractions() != null ? 
-                        convertInteractionsToJson(interactions.getRecentInteractions()) : "[]");
+                    // ENHANCED: Recent interactions stored as rich JSONB with accurate timestamps
+                    stmt.setString(13, interactions.getRecentInteractionsJsonb() != null ? 
+                        interactions.getRecentInteractionsJsonb() : "[]");
                     
                     stmt.addBatch();
                 }
@@ -1497,6 +1497,9 @@ public class DatabaseManager
     /**
      * Helper method to convert InteractingChanged list to JSON
      */
+    /**
+     * ENHANCED: Convert interactions to rich JSONB with comprehensive context
+     */
     private String convertInteractionsToJson(java.util.List<net.runelite.api.events.InteractingChanged> interactions) {
         if (interactions == null || interactions.isEmpty()) {
             return "[]";
@@ -1507,29 +1510,51 @@ public class DatabaseManager
             if (i > 0) json.append(",");
             net.runelite.api.events.InteractingChanged interaction = interactions.get(i);
             if (interaction != null) {
+                // Basic actor information
                 String sourceName = "";
                 String targetName = "";
+                String sourceType = "unknown";
+                String targetType = "unknown";
+                int sourceCombatLevel = 0;
+                int targetCombatLevel = 0;
                 
-                if (interaction.getSource() != null && interaction.getSource().getName() != null) {
-                    sourceName = interaction.getSource().getName();
-                }
-                if (interaction.getTarget() != null && interaction.getTarget().getName() != null) {
-                    targetName = interaction.getTarget().getName();
+                if (interaction.getSource() != null) {
+                    if (interaction.getSource().getName() != null) {
+                        sourceName = interaction.getSource().getName();
+                    }
+                    sourceType = interaction.getSource() instanceof net.runelite.api.Player ? "player" : "npc";
+                    sourceCombatLevel = interaction.getSource().getCombatLevel();
                 }
                 
+                if (interaction.getTarget() != null) {
+                    if (interaction.getTarget().getName() != null) {
+                        targetName = interaction.getTarget().getName();
+                    }
+                    targetType = interaction.getTarget() instanceof net.runelite.api.Player ? "player" : "npc";
+                    targetCombatLevel = interaction.getTarget().getCombatLevel();
+                }
+                
+                // Enhanced JSONB structure with rich context
                 json.append("{")
                     .append("\"source\":\"").append(sourceName).append("\",")
                     .append("\"target\":\"").append(targetName).append("\",")
-                    .append("\"timestamp\":").append(System.currentTimeMillis())
+                    .append("\"source_type\":\"").append(sourceType).append("\",")
+                    .append("\"target_type\":\"").append(targetType).append("\",")
+                    .append("\"source_combat_level\":").append(sourceCombatLevel).append(",")
+                    .append("\"target_combat_level\":").append(targetCombatLevel).append(",")
+                    .append("\"interaction_type\":\"").append(targetName.isEmpty() ? "disengaged" : "combat").append("\",")
+                    .append("\"timestamp\":").append(System.currentTimeMillis()) // TODO: Use actual interaction timestamp when available
                     .append("}");
             } else {
-                // Empty interaction object if data is null
-                json.append("{\"source\":\"\",\"target\":\"\",\"timestamp\":0}");
+                // Enhanced empty interaction object
+                json.append("{\"source\":\"\",\"target\":\"\",\"source_type\":\"unknown\",\"target_type\":\"unknown\",")
+                    .append("\"source_combat_level\":0,\"target_combat_level\":0,\"interaction_type\":\"none\",\"timestamp\":0}");
             }
         }
         json.append("]");
         return json.toString();
     }
+    
     
     /**
      * Helper method to convert simple lists to JSON strings
@@ -1909,29 +1934,6 @@ public class DatabaseManager
             }
             stmt.executeBatch();
         }
-        
-        // Insert friends data
-        String friendsSQL = "INSERT INTO friends_data (session_id, tick_number, timestamp, " +
-                           "total_friends, online_friends, offline_friends) " +
-                           "VALUES (?, ?, ?, ?, ?, ?)";
-        
-        try (PreparedStatement stmt = conn.prepareStatement(friendsSQL)) {
-            for (TickDataCollection tickData : batch) {
-                if (tickData.getFriendsData() != null) {
-                    stmt.setObject(1, tickData.getSessionId());
-                    stmt.setObject(2, tickData.getTickNumber());
-                    stmt.setTimestamp(3, new Timestamp(tickData.getTimestamp()));
-                    stmt.setInt(4, tickData.getFriendsData().getTotalFriends() != null ? 
-                        tickData.getFriendsData().getTotalFriends() : 0);
-                    stmt.setInt(5, tickData.getFriendsData().getOnlineFriends() != null ? 
-                        tickData.getFriendsData().getOnlineFriends() : 0);
-                    stmt.setInt(6, tickData.getFriendsData().getOfflineFriends() != null ? 
-                        tickData.getFriendsData().getOfflineFriends() : 0);
-                    stmt.addBatch();
-                }
-            }
-            stmt.executeBatch();
-        }
     }
     
     /**
@@ -1941,8 +1943,9 @@ public class DatabaseManager
     {
         String interfaceSQL = "INSERT INTO interface_data (session_id, tick_number, timestamp, " +
                              "total_open_interfaces, primary_interface, chatbox_open, inventory_open, " +
-                             "skills_open, quest_open, settings_open) " +
-                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                             "skills_open, quest_open, settings_open, current_interface_tab, " +
+                             "interface_interaction_count, interface_click_correlation) " +
+                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)";
         
         try (PreparedStatement stmt = conn.prepareStatement(interfaceSQL)) {
             for (TickDataCollection tickData : batch) {
@@ -1963,6 +1966,13 @@ public class DatabaseManager
                         tickData.getInterfaceData().getQuestInterfaceOpen() : false);
                     stmt.setBoolean(10, tickData.getInterfaceData().getSettingsInterfaceOpen() != null ? 
                         tickData.getInterfaceData().getSettingsInterfaceOpen() : false);
+                    
+                    // ENHANCED: Add new interface fields
+                    stmt.setString(11, tickData.getInterfaceData().getCurrentInterfaceTab());
+                    stmt.setObject(12, tickData.getInterfaceData().getInterfaceInteractionCount());
+                    stmt.setString(13, tickData.getInterfaceData().getInterfaceClickCorrelation() != null ? 
+                        tickData.getInterfaceData().getInterfaceClickCorrelation() : "{}");
+                    
                     stmt.addBatch();
                 }
             }

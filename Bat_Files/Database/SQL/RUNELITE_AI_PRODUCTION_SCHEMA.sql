@@ -1,14 +1,17 @@
 -- =================================================================================
--- RUNELITE AI PRODUCTION SCHEMA v8.2 - DATA QUALITY FIXES APPLIED
+-- RUNELITE AI PRODUCTION SCHEMA v8.4 - FRIENDS DATA REMOVAL & SYSTEM OPTIMIZATION
 -- =================================================================================
 -- Production-ready database schema for RuneLiteAI data collection system
 -- Built from actual code analysis of DataCollectionManager.java and DatabaseManager.java
 -- 
--- Latest Fixes (2025-08-29):
--- - Special attack percentage: Now correctly stores 0-100 instead of 0-1000
--- - Player location: chunk_x and chunk_y calculated from world coordinates (>> 6)
--- - Hitsplat data: Time-based filtering (10s window) prevents stale combat data
--- - Interaction data: Time-based filtering already implemented and working
+-- Latest Changes (2025-08-30):
+-- - REMOVED: friends_data table and all supporting code for system streamlining
+-- - FIXED: Quest interface widget name resolution with comprehensive Widget API integration
+-- - FIXED: Hardcoded "INTERFACE_1" fallbacks in interaction target resolution
+-- - FIXED: Timestamp repetition issues in interactions_data JSONB with time-based cleanup
+-- - ENHANCED: Interface data with interface_click_correlation JSONB field
+-- - ENHANCED: Interactions data with rich recent_interactions JSONB context fields
+-- - ENHANCED: Complete ItemManager and ObjectComposition integration for friendly names
 -- 
 -- Features:
 -- - 100% compatibility with existing Java implementation
@@ -39,11 +42,11 @@
 -- - Banking method detection (1, 5, 10, All, X) via MenuOptionClicked integration
 -- - Real-time click analysis and banking behavioral analytics
 -- 
--- Tables: 32 core tables matching DatabaseManager.java requirements exactly
+-- Tables: 31 core tables matching DatabaseManager.java requirements exactly (friends_data removed)
 -- Data Categories: Player, World, Combat, Hitsplats, Animations, Interactions, Nearby Players, Nearby NPCs, Input, Social, Interface, System Metrics, Click Context, Enhanced Input Analytics, Banking
 -- 
 -- @author RuneLiteAI Team
--- @version 8.2 (Production Release - Data Quality Fixes Applied - 2025-08-29)
+-- @version 8.4 (Production Release - Friends Data Removal & System Optimization - 2025-08-30)
 -- =================================================================================
 
 -- Enable required PostgreSQL extensions
@@ -818,26 +821,6 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Friends data table (from DatabaseManager)
-CREATE TABLE IF NOT EXISTS friends_data (
-    id BIGSERIAL PRIMARY KEY,
-    session_id INTEGER NOT NULL REFERENCES sessions(session_id) ON DELETE CASCADE,
-    tick_id BIGINT REFERENCES game_ticks(tick_id) ON DELETE CASCADE,
-    tick_number INTEGER NOT NULL,
-    timestamp TIMESTAMP NOT NULL,
-    
-    -- Friends data (DatabaseManager requirements)
-    total_friends INTEGER DEFAULT 0,
-    online_friends INTEGER DEFAULT 0,
-    offline_friends INTEGER DEFAULT 0,
-    
-    -- Enhanced friends tracking
-    friends_in_same_world INTEGER DEFAULT 0,
-    recent_friend_activity BOOLEAN DEFAULT FALSE,
-    average_friend_level FLOAT DEFAULT 0.0,
-    
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
 -- =================================================================================
 -- INTERFACE DATA TABLES - UI State and Interactions
@@ -863,6 +846,7 @@ CREATE TABLE IF NOT EXISTS interface_data (
     -- Enhanced interface tracking
     current_interface_tab VARCHAR(50),
     interface_interaction_count INTEGER DEFAULT 0,
+    interface_click_correlation JSONB DEFAULT '{}'::jsonb, -- ENHANCED: Correlation with click_context data
     dialog_active BOOLEAN DEFAULT FALSE,
     shop_open BOOLEAN DEFAULT FALSE,
     trade_screen_open BOOLEAN DEFAULT FALSE,
@@ -1259,7 +1243,6 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_input_data_camera ON input_data(came
 -- Social data indexes
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_chat_messages_activity ON chat_messages(most_active_type);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_friends_data_session ON friends_data(session_id);
 
 -- Interface data indexes
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_interface_data_session ON interface_data(session_id);
@@ -1486,22 +1469,22 @@ INSERT INTO schema_version_tracking (
     compatibility_notes,
     performance_improvements
 ) VALUES (
-    'v8.1-PRODUCTION',
+    'v8.4-PRODUCTION',
     100.0,
     3100,
     '[
-        "Complete Data Collection Gap Resolution",
-        "HIGH Priority Combat Analytics (hitsplats, animations, interactions)",
-        "MEDIUM Priority Environmental Data (nearby players/NPCs)",
-        "Enhanced JSONB Population Logic",
-        "Fixed Animation Detection System",
-        "Comprehensive Interaction Tracking",
-        "NPC Type Resolution",
-        "32 Core Production Tables",
+        "Friends Data Removal & System Optimization",
+        "Fixed Quest Interface Widget Name Resolution",
+        "Fixed Hardcoded INTERFACE_1 Fallbacks",
+        "Fixed Timestamp Repetition in JSONB Data",
+        "Enhanced Interface-Click Correlation",
+        "Improved Widget API Integration",
+        "Time-based Data Cleanup Implementation",
+        "31 Core Production Tables (friends_data removed)",
         "Ultimate Input Analytics Integration",
         "Advanced Banking System with Noted Items Detection"
     ]'::jsonb,
-    'Production schema v8.1 - Complete Data Collection Gap Resolution. Fixed all major database issues: empty JSONB arrays, missing interaction data, animation detection, NPC type resolution. Enhanced with 3,100+ data points per tick collection including combat analytics and environmental awareness.',
+    'Production schema v8.4 - Friends Data Removal & System Optimization. Removed friends_data table and supporting code. Fixed interface widget name resolution for Quest interface. Fixed hardcoded INTERFACE_1 fallbacks with proper widget text extraction. Fixed timestamp repetition issues with time-based cleanup. Enhanced with 3,100+ data points per tick collection.',
     'Enhanced JSONB conversion methods, comprehensive interaction tracking (menu + actor), improved animation state detection, proper NPC type classification, fixed hitsplat data collection, optimized for AI/ML training with rich structured data.'
 ) ON CONFLICT DO NOTHING;
 
@@ -1564,12 +1547,17 @@ COMMENT ON DATABASE runelite_ai IS 'RuneLiteAI Production Database v8.2 - Data Q
 -- 20. system_metrics - Performance monitoring, memory usage, FPS tracking
 
 -- =================================================================================
--- PRODUCTION SCHEMA v8.2 DEPLOYMENT COMPLETE - DATA QUALITY FIXES APPLIED
--- Ready for 3,100+ data points per tick collection with optimal performance
--- ✅ Special attack percentage: Now correctly stores 0-100% (not 1000)
--- ✅ Player location: chunk_x/chunk_y calculated from world coordinates  
--- ✅ Hitsplat data: 10-second time-based filtering prevents stale combat data
--- ✅ Interaction data: Time-based filtering working correctly
+-- PRODUCTION SCHEMA v8.4 DEPLOYMENT COMPLETE - FRIENDS DATA REMOVAL & SYSTEM OPTIMIZATION
+-- Ready for 3,100+ data points per tick collection with optimal performance (31 tables)
+-- ✅ Friends data removal: Streamlined system without friends_data table and supporting code
+-- ✅ Interface widget resolution: Fixed Quest interface name resolution with comprehensive Widget API
+-- ✅ Target name resolution: Fixed hardcoded "INTERFACE_1" fallbacks with proper widget text extraction
+-- ✅ Timestamp management: Fixed repetition issues in interactions_data with time-based cleanup
+-- ✅ Interface-click correlation: Rich JSONB analysis of interface interactions vs click_context
+-- ✅ Enhanced interactions JSONB: Complete context with source/target types, combat levels, durations
+-- ✅ Fixed timestamp handling: Accurate timestamps with proper time window filtering (no duplicates)
+-- ✅ Comprehensive debugging: [INTERFACE-DEBUG] and [INTERACTION-DEBUG] logging throughout
+-- ✅ Complete name resolution: ItemManager and ObjectComposition integration (zero hardcoded values)
 -- Complete click context tracking for comprehensive behavioral analysis
 -- Ultimate input analytics with specific key tracking, timing, and camera rotation
 -- =================================================================================

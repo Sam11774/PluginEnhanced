@@ -89,7 +89,6 @@ public class TickDataCollection
     
     // ===== SOCIAL DATA =====
     private DataStructures.ChatData chatData;
-    private DataStructures.FriendsData friendsData;
     private DataStructures.ClanData clanData;
     private DataStructures.TradeData tradeData;
     
@@ -159,7 +158,6 @@ public class TickDataCollection
         count += (animationData != null ? animationData.getDataPointCount() : 0);
         count += (interactionData != null ? interactionData.getDataPointCount() : 0);
         count += (chatData != null ? chatData.getDataPointCount() : 0);
-        count += (friendsData != null ? friendsData.getDataPointCount() : 0);
         count += (clanData != null ? clanData.getDataPointCount() : 0);
         count += (tradeData != null ? tradeData.getDataPointCount() : 0);
         count += (interfaceData != null ? interfaceData.getDataPointCount() : 0);

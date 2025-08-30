@@ -251,7 +251,7 @@ echo.
 %PSQL_ADMIN% -c "SELECT DISTINCT jsonb_array_elements_text(tags) as tag, COUNT(*) as session_count FROM sessions WHERE tags != '[]'::jsonb GROUP BY tag ORDER BY session_count DESC, tag;" -t
 
 echo.1
-echo Enter tag to search for (or type 'all' to see all tagged sessions):
+echo Enter tag to s1earch for (or type 'all' to see all tagged sessions):
 set /p search_tag="Tag: "
 
 if /i "%search_tag%"=="all" (
