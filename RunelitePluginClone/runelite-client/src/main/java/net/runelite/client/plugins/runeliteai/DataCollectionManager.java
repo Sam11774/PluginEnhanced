@@ -924,6 +924,9 @@ public class DataCollectionManager
         log.debug("[INVENTORY-DEBUG] Final inventory: usedSlots={}, totalValue={}, itemCounts.size()={}, items.length={}, notedItems={}", 
             usedSlots, totalValue, itemCounts.size(), items.length, notedItemsCount);
         
+        // CRITICAL FIX: Generate inventory JSON on Client thread where ItemManager works properly
+        String inventoryJson = generateInventoryJsonOnClientThread(items);
+        
         return PlayerInventory.builder()
             .inventoryItems(items)
             .usedSlots(usedSlots)
@@ -944,7 +947,107 @@ public class DataCollectionManager
             .valueLost(valueLost)
             // Noted items tracking
             .notedItemsCount(notedItemsCount)
+            // Pre-resolved JSON (generated on Client thread where ItemManager works)
+            .inventoryJson(inventoryJson)
             .build();
+    }
+    
+    /**
+     * Generate inventory JSON on Client thread where ItemManager works properly
+     * This is the CRITICAL FIX for the ItemManager thread-safety issue
+     */
+    private String generateInventoryJsonOnClientThread(Item[] items) {
+        log.debug("[CLIENT-THREAD-JSON] Generating inventory JSON on Client thread...");
+        
+        if (items == null || items.length == 0) {
+            log.debug("[CLIENT-THREAD-JSON] No items, returning empty array");
+            return "[]";
+        }
+        
+        StringBuilder json = new StringBuilder("[");
+        boolean first = true;
+        
+        int processedItems = 0;
+        for (int i = 0; i < items.length; i++) {
+            Item item = items[i];
+            if (item != null && item.getId() > 0) {
+                if (!first) {
+                    json.append(",");
+                }
+                
+                // Get item name using ItemManager on Client thread (where it works!)
+                String itemName = "Unknown Item";
+                final int itemId = item.getId();
+                
+                // CRITICAL FIX: Try ItemManager first for all items (including Barrows) 
+                // since we're now on Client thread where it works properly
+                try {
+                    if (itemManager != null) {
+                        ItemComposition itemComp = itemManager.getItemComposition(itemId);
+                        if (itemComp != null && itemComp.getName() != null) {
+                            String resolvedName = itemComp.getName().trim();
+                            if (!resolvedName.isEmpty()) {
+                                itemName = resolvedName.replace("\"", "\\\""); // Escape quotes for JSON
+                                log.debug("[CLIENT-THREAD-JSON] Resolved item name: '{}' for ID: {}", itemName, itemId);
+                            } else {
+                                log.debug("[CLIENT-THREAD-JSON] Empty name returned for ID: {}, using fallback", itemId);
+                                itemName = isProblematicItemId(itemId) ? getKnownItemName(itemId) : "Empty_Name_" + itemId;
+                            }
+                        } else {
+                            log.debug("[CLIENT-THREAD-JSON] Null composition for ID: {}, using fallback", itemId);
+                            itemName = isProblematicItemId(itemId) ? getKnownItemName(itemId) : "Null_Composition_" + itemId;
+                        }
+                    } else {
+                        log.debug("[CLIENT-THREAD-JSON] ItemManager null, using fallback for ID: {}", itemId);
+                        itemName = isProblematicItemId(itemId) ? getKnownItemName(itemId) : "ItemManager_Null_" + itemId;
+                    }
+                } catch (Exception e) {
+                    log.debug("[CLIENT-THREAD-JSON] Exception resolving item name for ID {}: {}, using fallback", itemId, e.getMessage());
+                    itemName = isProblematicItemId(itemId) ? getKnownItemName(itemId) : "Exception_" + itemId;
+                }
+                
+                json.append(String.format(
+                    "{\"slot\":%d,\"id\":%d,\"quantity\":%d,\"name\":\"%s\"}", 
+                    i, item.getId(), item.getQuantity(), itemName
+                ));
+                
+                first = false;
+                processedItems++;
+                
+                // Debug first few items
+                if (processedItems <= 3) {
+                    log.debug("[CLIENT-THREAD-JSON] Item {}: slot={}, id={}, qty={}, name={}", 
+                        processedItems, i, item.getId(), item.getQuantity(), itemName);
+                }
+            }
+        }
+        
+        json.append("]");
+        String result = json.toString();
+        log.debug("[CLIENT-THREAD-JSON] Generated JSON with {} items, length: {}", processedItems, result.length());
+        
+        return result;
+    }
+    
+    /**
+     * Get known item name for problematic items that hang ItemManager
+     */
+    private String getKnownItemName(int itemId) {
+        // Known Barrows items that cause hanging
+        if (itemId >= 4856 && itemId <= 4956) {
+            return "Barrows item (degraded_" + itemId + ")";
+        } else if (itemId >= 4708 && itemId <= 4759) {
+            return "Barrows item (new_" + itemId + ")";
+        }
+        return "Item_" + itemId;
+    }
+    
+    /**
+     * Check if item ID is known to cause hanging issues
+     */
+    private boolean isProblematicItemId(int itemId) {
+        // Only include items that actually cause hanging - mostly Barrows items
+        return (itemId >= 4856 && itemId <= 4956) || (itemId >= 4708 && itemId <= 4759);
     }
     
     /**

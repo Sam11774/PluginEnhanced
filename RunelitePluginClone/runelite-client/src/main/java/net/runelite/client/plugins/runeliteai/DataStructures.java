@@ -250,17 +250,21 @@ public class DataStructures
         // Noted items tracking
         private Integer notedItemsCount;
         
+        // Pre-resolved inventory JSON (resolved on Client thread where ItemManager works)
+        private String inventoryJson;
+        
         public int getDataPointCount() {
-            int count = 16; // usedSlots, freeSlots, totalValue, lastItemUsed, lastItemId, mostValuableItemId, mostValuableItemName, mostValuableItemQuantity, mostValuableItemValue, itemsAdded, itemsRemoved, quantityGained, quantityLost, valueGained, valueLost, notedItemsCount
+            int count = 17; // usedSlots, freeSlots, totalValue, lastItemUsed, lastItemId, mostValuableItemId, mostValuableItemName, mostValuableItemQuantity, mostValuableItemValue, itemsAdded, itemsRemoved, quantityGained, quantityLost, valueGained, valueLost, notedItemsCount, inventoryJson
             count += (inventoryItems != null ? inventoryItems.length : 0);
             count += (itemCounts != null ? itemCounts.size() : 0);
             return count;
         }
-        public long getEstimatedSize() { return 64 + (16 * 15) + 
+        public long getEstimatedSize() { return 64 + (17 * 16) + 
             (inventoryItems != null ? inventoryItems.length * 16 : 0) +
             (itemCounts != null ? itemCounts.size() * 32 : 0) +
             (lastItemUsed != null ? lastItemUsed.length() * 2 : 0) +
-            (mostValuableItemName != null ? mostValuableItemName.length() * 2 : 0); }
+            (mostValuableItemName != null ? mostValuableItemName.length() * 2 : 0) +
+            (inventoryJson != null ? inventoryJson.length() * 2 : 0); }
     }
     
     @Data

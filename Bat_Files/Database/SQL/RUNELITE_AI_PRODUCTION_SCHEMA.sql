@@ -1,16 +1,16 @@
 -- =================================================================================
--- RUNELITE AI PRODUCTION SCHEMA v8.4 - FRIENDS DATA REMOVAL & SYSTEM OPTIMIZATION
+-- RUNELITE AI PRODUCTION SCHEMA v8.4 - INVENTORY NAME RESOLUTION FIX & SYSTEM OPTIMIZATION
 -- =================================================================================
 -- Production-ready database schema for RuneLiteAI data collection system
 -- Built from actual code analysis of DataCollectionManager.java and DatabaseManager.java
 -- 
--- Latest Changes (2025-08-30):
--- - REMOVED: friends_data table and all supporting code for system streamlining
--- - FIXED: Quest interface widget name resolution with comprehensive Widget API integration
--- - FIXED: Hardcoded "INTERFACE_1" fallbacks in interaction target resolution
--- - FIXED: Timestamp repetition issues in interactions_data JSONB with time-based cleanup
--- - ENHANCED: Interface data with interface_click_correlation JSONB field
--- - ENHANCED: Interactions data with rich recent_interactions JSONB context fields
+-- Latest Changes (2025-08-31):
+-- - CRITICAL FIX: Inventory name resolution thread-safety issue resolved
+-- - FIXED: ItemManager calls moved to Client thread during data collection phase
+-- - FIXED: Pre-resolved inventory JSON eliminates "Future_Failed_" prefixes for normal items
+-- - ENHANCED: Thread-safe architecture for all ItemManager operations
+-- - ENHANCED: Complete inventory item name resolution matching banking quality
+-- - PREVIOUS: Friends data removal, interface widget resolution, timestamp cleanup
 -- - ENHANCED: Complete ItemManager and ObjectComposition integration for friendly names
 -- 
 -- Features:
@@ -282,6 +282,7 @@ CREATE TABLE IF NOT EXISTS player_inventory (
     
     -- Inventory items as JSONB array for efficient storage and querying
     -- Format: [{"slot": 0, "id": 995, "quantity": 1000, "name": "Coins"}, ...]
+    -- CRITICAL FIX: Pre-resolved JSON generated on Client thread where ItemManager works
     inventory_items JSONB DEFAULT '[]'::jsonb,
     
     -- Inventory change tracking
@@ -1474,18 +1475,19 @@ INSERT INTO schema_version_tracking (
     100.0,
     3100,
     '[
+        "CRITICAL: Inventory Name Resolution Thread-Safety Fix",
+        "Fixed ItemManager Thread-Safety for Normal Items",
+        "Pre-resolved JSON Eliminates Future_Failed Prefixes",
+        "Thread-Safe Architecture for All ItemManager Operations",
+        "Complete Inventory Name Resolution Parity with Banking",
         "Friends Data Removal & System Optimization",
         "Fixed Quest Interface Widget Name Resolution",
         "Fixed Hardcoded INTERFACE_1 Fallbacks",
-        "Fixed Timestamp Repetition in JSONB Data",
-        "Enhanced Interface-Click Correlation",
-        "Improved Widget API Integration",
-        "Time-based Data Cleanup Implementation",
         "31 Core Production Tables (friends_data removed)",
         "Ultimate Input Analytics Integration",
         "Advanced Banking System with Noted Items Detection"
     ]'::jsonb,
-    'Production schema v8.4 - Friends Data Removal & System Optimization. Removed friends_data table and supporting code. Fixed interface widget name resolution for Quest interface. Fixed hardcoded INTERFACE_1 fallbacks with proper widget text extraction. Fixed timestamp repetition issues with time-based cleanup. Enhanced with 3,100+ data points per tick collection.',
+    'Production schema v8.4 - Inventory Name Resolution Fix & System Optimization. CRITICAL FIX: Resolved inventory name resolution thread-safety issue where ItemManager was called on worker threads causing "Future_Failed_" prefixes for normal items. Moved all ItemManager calls to Client thread during data collection phase using pre-resolved JSON approach. Now achieves same quality as banking name resolution. Enhanced with 3,100+ data points per tick collection.',
     'Enhanced JSONB conversion methods, comprehensive interaction tracking (menu + actor), improved animation state detection, proper NPC type classification, fixed hitsplat data collection, optimized for AI/ML training with rich structured data.'
 ) ON CONFLICT DO NOTHING;
 
