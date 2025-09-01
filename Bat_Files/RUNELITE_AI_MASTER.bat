@@ -7,6 +7,11 @@ REM                        Version 3.0.0 Phase 3
 REM ================================================================
 REM ================================================================
 
+REM Initialize batch logging framework
+call "%~dp0batch_logging.bat"
+call :INIT_BATCH_LOGGING
+call :LOG_INFO "RuneLite AI Master Control System v3.0.0 Phase 3 starting..."
+
 :init
 REM Set up environment variables and paths
 set "MASTER_DIR=%~dp0"
@@ -251,12 +256,12 @@ echo.
 %PSQL_ADMIN% -c "SELECT DISTINCT jsonb_array_elements_text(tags) as tag, COUNT(*) as session_count FROM sessions WHERE tags != '[]'::jsonb GROUP BY tag ORDER BY session_count DESC, tag;" -t
 
 echo.1
-echo Enter tag to s1earch for (or type 'all' to see all tagged sessions):
+echo Enter tag to s1earch for (or type 'all' to see all tagged sessions):1
 set /p search_tag="Tag: "
 
-if /i "%search_tag%"=="all" (
+if /i "%search_tag%"=="all" (1
     echo.
-    echo All Tagged Sessions:
+    echo All Tagged Sessions:1
 
     echo.
     echo Session ID ^| Player Name   ^| Activity Type ^| Start Time          ^| Ticks ^| Tags

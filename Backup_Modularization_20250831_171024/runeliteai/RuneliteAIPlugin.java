@@ -105,7 +105,6 @@ public class RuneliteAIPlugin extends Plugin
         @Override
         public void keyPressed(KeyEvent e)
         {
-            log.debug("[INPUT-DEBUG] KeyListener.keyPressed called - keyCode: {}", e.getKeyCode());
             keyPressCountSinceTick.incrementAndGet();
             long pressTime = System.currentTimeMillis();
             recentKeyPresses.put(e.getKeyCode(), pressTime);
@@ -147,7 +146,6 @@ public class RuneliteAIPlugin extends Plugin
         @Override
         public MouseEvent mousePressed(MouseEvent e)
         {
-            log.debug("[INPUT-DEBUG] MouseListener.mousePressed called - button: {}", e.getButton());
             long pressTime = System.currentTimeMillis();
             mouseButtonPressTimestamps.put(e.getButton(), pressTime);
             currentlyHeldMouseButtons.put(e.getButton(), true);
@@ -249,11 +247,6 @@ public class RuneliteAIPlugin extends Plugin
         
         // Initialize managers
         initializeManagers();
-        
-        // Register input listeners
-        keyManager.registerKeyListener(keyListener);
-        mouseManager.registerMouseListener(mouseListener);
-        log.debug("[INPUT-DEBUG] Input listeners registered - KeyListener and MouseListener");
         
         // Note: Database session will be initialized when player logs in
         // This prevents duplicate sessions from being created
@@ -537,20 +530,6 @@ public class RuneliteAIPlugin extends Plugin
             
         } catch (Exception e) {
             log.error("Error during game tick processing", e);
-        } finally {
-            // Clear input collections for next tick (at end of tick processing)
-            int keysCleared = recentKeyPressDetails.size();
-            int mouseCleared = recentMouseButtonDetails.size(); 
-            int combosCleared = recentKeyCombinations.size();
-            
-            recentKeyPressDetails.clear();
-            recentMouseButtonDetails.clear();
-            recentKeyCombinations.clear();
-            
-            if (keysCleared > 0 || mouseCleared > 0 || combosCleared > 0) {
-                log.debug("[INPUT-DEBUG] End of tick - cleared: keys={}, mouse={}, combos={}", 
-                    keysCleared, mouseCleared, combosCleared);
-            }
         }
     }
     
@@ -689,12 +668,8 @@ public class RuneliteAIPlugin extends Plugin
     @Subscribe
     public void onProjectileMoved(ProjectileMoved event)
     {
-        log.debug("[PROJECTILE-DEBUG] onProjectileMoved called - isPluginActive: {}, dataCollectionManager: {}", 
-            isPluginActive, dataCollectionManager != null ? "available" : "null");
-            
         if (!isPluginActive || dataCollectionManager == null) return;
         
-        log.debug("[PROJECTILE-DEBUG] Recording projectile: {}", event.getProjectile() != null ? event.getProjectile().getId() : "null");
         dataCollectionManager.recordProjectile(event);
     }
     
@@ -717,15 +692,10 @@ public class RuneliteAIPlugin extends Plugin
     @Subscribe
     public void onMenuOptionClicked(MenuOptionClicked event)
     {
-        log.debug("[CLICK-DEBUG] onMenuOptionClicked called - isPluginActive: {}, dataCollectionManager: {}", 
-            isPluginActive, dataCollectionManager != null ? "available" : "null");
-            
         if (!isPluginActive || dataCollectionManager == null) return;
         
         try {
             // Record basic click context (existing functionality)
-            log.debug("[CLICK-DEBUG] Calling dataCollectionManager.recordClickContext with event: {}", 
-                event.getMenuEntry() != null ? event.getMenuEntry().getOption() : "null");
             dataCollectionManager.recordClickContext(event);
             
             // Enhanced click analytics could be added here in the future
@@ -1054,7 +1024,6 @@ public class RuneliteAIPlugin extends Plugin
                 .build();
                 
             recentMouseButtonDetails.offer(mouseButton);
-            log.debug("[INPUT-DEBUG] Added mouse button to queue - button: {}, queueSize: {}", e.getButton(), recentMouseButtonDetails.size());
             
             // Clean up old entries
             while (recentMouseButtonDetails.size() > 100) {
@@ -1214,11 +1183,10 @@ public class RuneliteAIPlugin extends Plugin
             List<DataStructures.MouseButtonData> currentMouseButtons = new ArrayList<>(recentMouseButtonDetails);
             List<DataStructures.KeyCombinationData> currentKeyCombinations = new ArrayList<>(recentKeyCombinations);
             
-            log.debug("[INPUT-DEBUG] getEnhancedInputData - returning: keys={}, mouse={}, combos={}", 
-                currentKeyPresses.size(), currentMouseButtons.size(), currentKeyCombinations.size());
-            
-            // Note: Collections are NOT cleared here since this method is called multiple times per tick
-            // Collections will be cleared at end of onGameTick processing
+            // Clear the queues for next tick
+            recentKeyPressDetails.clear();
+            recentMouseButtonDetails.clear();
+            recentKeyCombinations.clear();
             
             return DataStructures.EnhancedInputData.builder()
                 .totalKeyPresses(currentKeyPresses.size())

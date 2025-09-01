@@ -243,6 +243,81 @@
         <appender-ref ref="ERROR_SUMMARY"/>
     </logger>
 
+    <!-- Data Collection Orchestrator logger -->
+    <logger name="net.runelite.client.plugins.runeliteai.DataCollectionOrchestrator" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_DATA"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Modular Data Collectors -->
+    <logger name="net.runelite.client.plugins.runeliteai.PlayerDataCollector" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_DATA"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+    
+    <logger name="net.runelite.client.plugins.runeliteai.WorldDataCollector" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_DATA"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+    
+    <logger name="net.runelite.client.plugins.runeliteai.InputDataCollector" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_DATA"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+    
+    <logger name="net.runelite.client.plugins.runeliteai.CombatDataCollector" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_DATA"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+    
+    <logger name="net.runelite.client.plugins.runeliteai.SocialDataCollector" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_DATA"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+    
+    <logger name="net.runelite.client.plugins.runeliteai.InterfaceDataCollector" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_DATA"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+    
+    <logger name="net.runelite.client.plugins.runeliteai.SystemMetricsCollector" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_DATA"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Modular Database Components -->
+    <logger name="net.runelite.client.plugins.runeliteai.DatabaseConnectionManager" level="INFO" additivity="false">
+        <appender-ref ref="DATABASE"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+    
+    <logger name="net.runelite.client.plugins.runeliteai.DatabaseTableOperations" level="INFO" additivity="false">
+        <appender-ref ref="DATABASE"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+    
+    <logger name="net.runelite.client.plugins.runeliteai.DatabaseUtilities" level="INFO" additivity="false">
+        <appender-ref ref="DATABASE"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+    
+    <logger name="net.runelite.client.plugins.runeliteai.DatabasePerformanceMonitor" level="INFO" additivity="false">
+        <appender-ref ref="DATABASE"/>
+        <appender-ref ref="PERFORMANCE"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
+    <!-- Enhanced Services -->
+    <logger name="net.runelite.client.plugins.runeliteai.ClickIntelligenceService" level="INFO" additivity="false">
+        <appender-ref ref="RUNELITEAI_RUNTIME"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+    
+    <logger name="net.runelite.client.plugins.runeliteai.OSRSWikiService" level="INFO" additivity="false">
+        <appender-ref ref="RUNELITEAI_RUNTIME"/>
+        <appender-ref ref="ERROR_SUMMARY"/>
+    </logger>
+
     <!-- Root logger -->
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

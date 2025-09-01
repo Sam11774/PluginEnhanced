@@ -3,7 +3,9 @@
     "allow": [
       "Bash(PGPASSWORD=sam11773 \"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\" -U postgres -h localhost -p 5432 -d runelite_ai -c \"\\d click_context\")",
       "Bash(PGPASSWORD=sam11773 \"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\":*)",
-      "Bash(mvn:*)"
+      "Bash(mvn:*)",
+      "Bash(grep:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": [],
