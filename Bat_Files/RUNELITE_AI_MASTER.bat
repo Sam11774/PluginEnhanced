@@ -259,7 +259,7 @@ echo.1
 echo Enter tag to s1earch for (or type 'all' to see all tagged sessions):1
 set /p search_tag="Tag: "
 
-if /i "%search_tag%"=="all" (1
+if /i "%search_tag%"=="all" (1cl
     echo.
     echo All Tagged Sessions:1
 

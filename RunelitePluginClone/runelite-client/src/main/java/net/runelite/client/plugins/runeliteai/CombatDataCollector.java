@@ -106,9 +106,48 @@ public class CombatDataCollector
                               isAttacking || 
                               (interacting != null && (interacting instanceof NPC || interacting instanceof Player));
             
-            log.debug("Combat state - interacting: {}, animation: {}, isAttacking: {}, inCombat: {}, targetName: {}", 
+            String currentWeaponType = getWeaponType();
+            String currentAttackStyle = getAttackStyle();
+            
+            // CRITICAL FIX: Integrate recent damage from hitsplats into combat data
+            int damageDealt = 0;
+            int damageReceived = 0;
+            int maxHitDealt = 0;
+            int maxHitReceived = 0;
+            
+            // Calculate damage from recent hitsplats (last 10 seconds)
+            long currentTime = System.currentTimeMillis();
+            long damageTimeThreshold = currentTime - 10000; // 10 seconds for combat damage
+            
+            for (TimestampedHitsplat timestampedHitsplat : recentHitsplats) {
+                if (timestampedHitsplat != null && timestampedHitsplat.getHitsplat() != null && 
+                    timestampedHitsplat.getHitsplat().getHitsplat() != null && 
+                    timestampedHitsplat.getTimestamp() >= damageTimeThreshold) {
+                    
+                    HitsplatApplied hitsplat = timestampedHitsplat.getHitsplat();
+                    Actor hitsplatActor = hitsplat.getActor();
+                    int damage = hitsplat.getHitsplat().getAmount();
+                    
+                    // Damage TO the local player (received)
+                    if (hitsplatActor.equals(localPlayer)) {
+                        damageReceived += damage;
+                        maxHitReceived = Math.max(maxHitReceived, damage);
+                        log.debug("[DAMAGE-FIX] Player RECEIVED {} damage from {}", damage, hitsplatActor.getName());
+                    }
+                    // CRITICAL FIX: Damage FROM the local player (dealt)
+                    // We stored this hitsplat in onHitsplatApplied because it was on the player's target
+                    // So if it's not on the local player, and we stored it, then it's damage dealt BY the player
+                    else {
+                        damageDealt += damage;
+                        maxHitDealt = Math.max(maxHitDealt, damage);
+                        log.debug("[DAMAGE-FIX] Player DEALT {} damage to {}", damage, hitsplatActor.getName());
+                    }
+                }
+            }
+            
+            log.debug("Combat state - interacting: {}, animation: {}, isAttacking: {}, inCombat: {}, targetName: {}, weapon: {}, style: {}, damageDealt: {}, damageReceived: {}", 
                      interacting != null ? interacting.getName() : "none", 
-                     currentAnimation, isAttacking, inCombat, targetName);
+                     currentAnimation, isAttacking, inCombat, targetName, currentWeaponType, currentAttackStyle, damageDealt, damageReceived);
             
             return CombatData.builder()
                 .inCombat(inCombat)
@@ -119,8 +158,12 @@ public class CombatDataCollector
                 .currentAnimation(currentAnimation)
                 .lastCombatTick(System.currentTimeMillis())
                 .specialAttackPercent(client.getVarpValue(VarPlayer.SPECIAL_ATTACK_PERCENT) / 10)
-                .weaponType(getWeaponType())
-                .attackStyle(getAttackStyle())
+                .weaponType(currentWeaponType)
+                .attackStyle(currentAttackStyle)
+                .damageDealt(damageDealt)
+                .damageReceived(damageReceived)
+                .maxHitDealt(maxHitDealt)
+                .maxHitReceived(maxHitReceived)
                 .build();
         } catch (Exception e) {
             log.warn("Error collecting combat data", e);
@@ -142,16 +185,18 @@ public class CombatDataCollector
             String lastHitType = null;
             Long lastHitTime = null;
             
-            // Only consider hitsplats from the last 10 seconds to avoid stale data
+            // Only consider hitsplats from the last 60 seconds to avoid stale data (extended window for testing)
             long currentTime = System.currentTimeMillis();
-            long timeThreshold = currentTime - 10000; // 10 seconds
+            long timeThreshold = currentTime - 60000; // 60 seconds (was 10)
+            
+            log.debug("[HITSPLAT-DEBUG] Collecting hitsplat data - queue size: {}, timeThreshold: {}", recentHitsplats.size(), timeThreshold);
             
             // Collect recent hitsplats from the queue (time-filtered)
             for (TimestampedHitsplat timestampedHitsplat : recentHitsplats) {
                 if (timestampedHitsplat != null && timestampedHitsplat.getHitsplat() != null && 
                     timestampedHitsplat.getHitsplat().getHitsplat() != null) {
                     
-                    // Only include hitsplats from the last 10 seconds
+                    // Only include hitsplats from the last 60 seconds
                     if (timestampedHitsplat.getTimestamp() >= timeThreshold) {
                         HitsplatApplied hitsplat = timestampedHitsplat.getHitsplat();
                         recentHitsplatList.add(hitsplat);
@@ -359,8 +404,45 @@ public class CombatDataCollector
      */
     public void onHitsplatApplied(HitsplatApplied hitsplatApplied)
     {
-        TimestampedHitsplat timestamped = new TimestampedHitsplat(hitsplatApplied, System.currentTimeMillis());
-        recentHitsplats.offer(timestamped);
+        if (hitsplatApplied == null || hitsplatApplied.getHitsplat() == null || hitsplatApplied.getActor() == null) {
+            return;
+        }
+        
+        Player localPlayer = client.getLocalPlayer();
+        if (localPlayer == null) {
+            return;
+        }
+        
+        Actor hitsplatActor = hitsplatApplied.getActor();
+        int damage = hitsplatApplied.getHitsplat().getAmount();
+        
+        // CRITICAL FIX: Only track hitsplats that are relevant to the local player
+        // Case 1: Damage TO the local player (player receives damage)
+        // Case 2: Damage FROM the local player to their target (player deals damage)
+        boolean isPlayerReceivingDamage = hitsplatActor.equals(localPlayer);
+        boolean isPlayerDealingDamage = false;
+        
+        // Check if this hitsplat is on the local player's current target (player dealing damage)
+        Actor currentTarget = localPlayer.getInteracting();
+        if (currentTarget != null && hitsplatActor.equals(currentTarget)) {
+            isPlayerDealingDamage = true;
+        }
+        
+        // Only store hitsplats relevant to local player combat
+        if (isPlayerReceivingDamage || isPlayerDealingDamage) {
+            TimestampedHitsplat timestamped = new TimestampedHitsplat(hitsplatApplied, System.currentTimeMillis());
+            recentHitsplats.offer(timestamped);
+            
+            log.debug("[HITSPLAT-DEBUG] Stored relevant hitsplat - damage: {}, type: {}, actor: {}, isReceiving: {}, isDealing: {}", 
+                damage, 
+                hitsplatApplied.getHitsplat().getHitsplatType(),
+                hitsplatActor.getName(),
+                isPlayerReceivingDamage,
+                isPlayerDealingDamage);
+        } else {
+            log.debug("[HITSPLAT-DEBUG] Ignored irrelevant hitsplat - damage: {}, actor: {}", 
+                damage, hitsplatActor.getName());
+        }
         
         // Keep queue bounded
         while (recentHitsplats.size() > 50) {
@@ -431,10 +513,48 @@ public class CombatDataCollector
         if (animationId == -1) return "idle";
         if (isAttackAnimation(animationId)) return "attack";
         
-        // Common animation types
-        if (animationId >= 800 && animationId <= 900) return "movement";
-        if (animationId >= 1200 && animationId <= 1300) return "magic";
-        if (animationId >= 700 && animationId <= 800) return "skilling";
+        // Combat animations - expanded ranges
+        // Melee attacks: 376-395, 400-430, 1658-1667, 2066-2078, 7514-7516, 8145
+        if ((animationId >= 376 && animationId <= 395) ||
+            (animationId >= 400 && animationId <= 430) ||
+            (animationId >= 1658 && animationId <= 1667) ||
+            (animationId >= 2066 && animationId <= 2078) ||
+            (animationId >= 7514 && animationId <= 7516) ||
+            animationId == 8145) {
+            return "melee_attack";
+        }
+        
+        // Magic combat: 710-730, 1161-1167, 1978-1979, 7855, 8056
+        if ((animationId >= 710 && animationId <= 730) ||
+            (animationId >= 1161 && animationId <= 1167) ||
+            animationId == 1978 || animationId == 1979 ||
+            animationId == 7855 || animationId == 8056) {
+            return "magic_cast";
+        }
+        
+        // Ranged attacks: 426, 4230, 7552, 7618, 8194-8195
+        if (animationId == 426 || animationId == 4230 || 
+            animationId == 7552 || animationId == 7618 ||
+            (animationId >= 8194 && animationId <= 8195)) {
+            return "ranged_attack";
+        }
+        
+        // High Alchemy: 713 (special case)
+        if (animationId == 713) return "high_alchemy";
+        
+        // Teleport animations: 714, 3864-3865, 8939
+        if (animationId == 714 || (animationId >= 3864 && animationId <= 3865) || animationId == 8939) {
+            return "teleport";
+        }
+        
+        // Movement animations
+        if ((animationId >= 800 && animationId <= 900) || animationId == 824) return "movement";
+        
+        // Skilling animations (excluding 713 high alch and 714 teleport)
+        if ((animationId >= 700 && animationId <= 800) && animationId != 713 && animationId != 714) return "skilling";
+        
+        // Death/damage animations: 836, 2304
+        if (animationId == 836 || animationId == 2304) return "death";
         
         return "other";
     }
@@ -651,9 +771,107 @@ public class CombatDataCollector
             log.debug("Failed to lookup animation {} using AnimationID reflection: {}", animationId, e.getMessage());
         }
         
-        // Fallback - try to get animation type for better context
+        // Enhanced fallback - try to get animation type and provide more specific names
         String type = getAnimationType(animationId);
+        String specificName = getSpecificAnimationName(animationId, type);
+        if (specificName != null) {
+            return specificName;
+        }
+        
         return type.toUpperCase() + "_" + animationId;
+    }
+    
+    /**
+     * Get specific animation names for common animations not in AnimationID constants
+     */
+    private String getSpecificAnimationName(int animationId, String type)
+    {
+        // Common skilling animations
+        if ("skilling".equals(type)) {
+            switch (animationId) {
+                case 714: return "TELEPORT_STANDARD"; // Actually teleport, not woodcutting
+                case 879: return "FISHING_NET";
+                case 896: return "COOKING_RANGE";
+                case 833: return "SMITHING_ANVIL";
+                case 885: return "MINING_PICKAXE";
+                case 832: return "SMITHING_HAMMER";
+                case 869: return "HERBLORE_PESTLE";
+                case 884: return "CRAFTING_POTTERY";
+                case 709: return "FIREMAKING_TINDERBOX";
+                case 827: return "FLETCHING_KNIFE";
+                case 710: return "WOODCUTTING_AXE";
+                case 618: return "FARMING_SPADE";
+                case 712: return "WOODCUTTING_DRAGON_AXE";
+                case 2273: return "CONSTRUCTION_HAMMER";
+                case 5107: return "HUNTER_TRAP";
+                default: return null;
+            }
+        }
+        
+        // Common combat animations
+        if ("attack".equals(type)) {
+            switch (animationId) {
+                case 422: return "UNARMED_PUNCH";
+                case 423: return "UNARMED_KICK";
+                case 428: return "SWORD_STAB";
+                case 440: return "SWORD_SLASH";
+                case 412: return "DAGGER_STAB";
+                case 451: return "MACE_POUND";
+                case 426: return "AXE_HACK";
+                case 1167: return "BOW_SHOOT";
+                case 7552: return "CROSSBOW_SHOOT";
+                case 1979: return "WHIP_CRACK";
+                case 376: return "STAFF_BASH";
+                case 414: return "SWORD_BLOCK";
+                case 419: return "MACE_BLOCK";
+                case 424: return "AXE_BLOCK";
+                default: return null;
+            }
+        }
+        
+        // Common magic animations
+        if ("magic".equals(type)) {
+            switch (animationId) {
+                case 1162: return "HIGH_LEVEL_ALCHEMY";
+                case 713: return "HIGH_ALCHEMY"; // Actually High Alchemy, not Fire Strike
+                case 717: return "WATER_STRIKE";
+                case 718: return "EARTH_STRIKE";
+                case 719: return "AIR_STRIKE";
+                case 1818: return "TELEPORT_NORMAL";
+                case 8939: return "TELEPORT_ANCIENT";
+                case 9599: return "TELEPORT_LUNAR";
+                default: return null;
+            }
+        }
+        
+        // Common movement animations
+        if ("movement".equals(type)) {
+            switch (animationId) {
+                case 808: return "RUNNING";
+                case 819: return "WALKING";
+                case 824: return "TURNING_LEFT";
+                case 825: return "TURNING_RIGHT";
+                case 762: return "CRAWLING";
+                case 1205: return "SWIMMING";
+                default: return null;
+            }
+        }
+        
+        // Other common animations
+        switch (animationId) {
+            case 11222: return "EMOTE_DANCE";
+            case 863: return "EATING_FOOD";
+            case 829: return "DRINKING_POTION";
+            case 855: return "READING_BOOK";
+            case 858: return "OPENING_DOOR";
+            case 827: return "PICKING_UP_ITEM";
+            case 881: return "DROPPING_ITEM";
+            case 1368: return "SITTING_DOWN";
+            case 1369: return "STANDING_UP";
+            case 2108: return "BANKING_WITHDRAW";
+            case 2109: return "BANKING_DEPOSIT";
+            default: return null;
+        }
     }
     
     // =============== CRITICAL EVENT HANDLING METHODS - FULLY RESTORED ===============

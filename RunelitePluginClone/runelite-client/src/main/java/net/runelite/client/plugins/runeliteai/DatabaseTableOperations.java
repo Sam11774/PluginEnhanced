@@ -564,14 +564,24 @@ public class DatabaseTableOperations
                     
                     // Current levels (23 skills)
                     for (String skill : skillNames) {
-                        stmt.setObject(paramIndex++, stats.getCurrentLevels() != null ? 
-                            stats.getCurrentLevels().getOrDefault(skill, 1) : 1);
+                        Integer level = stats.getCurrentLevels() != null ? 
+                            stats.getCurrentLevels().get(skill) : null;
+                        if (level == null) {
+                            log.debug("[STATS-DEBUG] Missing current level for skill: {}", skill);
+                            level = 1; // Default fallback
+                        }
+                        stmt.setObject(paramIndex++, level);
                     }
                     
                     // Real levels (23 skills)
                     for (String skill : skillNames) {
-                        stmt.setObject(paramIndex++, stats.getRealLevels() != null ? 
-                            stats.getRealLevels().getOrDefault(skill, 1) : 1);
+                        Integer level = stats.getRealLevels() != null ? 
+                            stats.getRealLevels().get(skill) : null;
+                        if (level == null) {
+                            log.debug("[STATS-DEBUG] Missing real level for skill: {}", skill);
+                            level = 1; // Default fallback
+                        }
+                        stmt.setObject(paramIndex++, level);
                     }
                     
                     // Experience points (23 skills)
@@ -775,7 +785,7 @@ public class DatabaseTableOperations
                     // Inventory summary data
                     stmt.setObject(5, inventory.getUsedSlots() != null ? inventory.getUsedSlots() : 0);
                     stmt.setObject(6, inventory.getFreeSlots() != null ? inventory.getFreeSlots() : 28);
-                    stmt.setObject(7, 0); // totalQuantity - calculated field not in DataStructures
+                    stmt.setObject(7, inventory.getTotalQuantity() != null ? inventory.getTotalQuantity() : 0); // totalQuantity - now properly implemented
                     stmt.setObject(8, inventory.getTotalValue() != null ? inventory.getTotalValue() : 0L);
                     stmt.setObject(9, 0); // uniqueItemTypes - calculated field not in DataStructures
                     
@@ -1125,8 +1135,9 @@ public class DatabaseTableOperations
             "INSERT INTO combat_data (session_id, tick_id, tick_number, timestamp, " +
             "in_combat, is_attacking, target_name, target_type, target_combat_level, " +
             "current_animation, weapon_type, attack_style, special_attack_percent, " +
-            "combat_state, last_attack_time, damage_dealt, last_combat_tick) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            "combat_state, last_attack_time, damage_dealt, damage_received, " +
+            "max_hit_dealt, max_hit_received, last_combat_tick) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
             int addedToBatch = 0;
@@ -1172,7 +1183,10 @@ public class DatabaseTableOperations
                     stmt.setObject(15, combatData.getLastAttackTime() != null ? 
                         new Timestamp(combatData.getLastAttackTime()) : null, java.sql.Types.TIMESTAMP);
                     stmt.setObject(16, combatData.getDamageDealt(), java.sql.Types.INTEGER);
-                    stmt.setObject(17, combatData.getLastCombatTick(), java.sql.Types.BIGINT);
+                    stmt.setObject(17, combatData.getDamageReceived(), java.sql.Types.INTEGER);
+                    stmt.setObject(18, combatData.getMaxHitDealt(), java.sql.Types.INTEGER);
+                    stmt.setObject(19, combatData.getMaxHitReceived(), java.sql.Types.INTEGER);
+                    stmt.setObject(20, combatData.getLastCombatTick(), java.sql.Types.BIGINT);
                     
                     stmt.addBatch();
                     addedToBatch++;
@@ -2537,9 +2551,9 @@ public class DatabaseTableOperations
         
         String insertSQL = 
             "INSERT INTO key_combinations (session_id, tick_id, tick_number, timestamp, " +
-            "key_sequence, combination_type, modifier_keys, primary_key, press_duration, " +
-            "release_duration, total_duration, key_count, hotkey_detected, context_type) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            "key_combination, primary_key_code, modifier_keys, combination_timestamp, duration_ms, " +
+            "combination_type, is_game_hotkey, is_system_shortcut) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
             int addedToBatch = 0;
@@ -2568,20 +2582,16 @@ public class DatabaseTableOperations
                         stmt.setTimestamp(4, new Timestamp(tickData.getTimestamp())); // timestamp
                         
                         // Key combination details
-                        stmt.setString(5, keyCombo.getKeyCombination()); // key_sequence
-                        stmt.setString(6, keyCombo.getCombinationType()); // combination_type
-                        stmt.setString(7, keyCombo.getModifierKeys() != null ? keyCombo.getModifierKeys().toString() : null); // modifier_keys
-                        stmt.setObject(8, keyCombo.getPrimaryKeyCode()); // primary_key
+                        stmt.setString(5, keyCombo.getKeyCombination()); // key_combination
+                        stmt.setObject(6, keyCombo.getPrimaryKeyCode()); // primary_key_code
+                        stmt.setString(7, keyCombo.getModifierKeys() != null ? keyCombo.getModifierKeys().toString() : "[]"); // modifier_keys
+                        stmt.setLong(8, tickData.getTimestamp()); // combination_timestamp
                         
-                        // Timing details - map to available fields
-                        stmt.setObject(9, keyCombo.getDurationMs()); // press_duration
-                        stmt.setObject(10, null); // release_duration (not available)
-                        stmt.setObject(11, keyCombo.getDurationMs()); // total_duration
-                        stmt.setObject(12, keyCombo.getModifierKeys() != null ? keyCombo.getModifierKeys().size() + 1 : 1); // key_count
-                        
-                        // Context details
-                        stmt.setBoolean(13, keyCombo.getIsGameHotkey() != null ? keyCombo.getIsGameHotkey() : false); // hotkey_detected
-                        stmt.setString(14, keyCombo.getIsSystemShortcut() != null && keyCombo.getIsSystemShortcut() ? "SYSTEM" : "GAME"); // context_type
+                        // Remaining details
+                        stmt.setObject(9, keyCombo.getDurationMs()); // duration_ms
+                        stmt.setString(10, keyCombo.getCombinationType()); // combination_type
+                        stmt.setBoolean(11, keyCombo.getIsGameHotkey() != null ? keyCombo.getIsGameHotkey() : false); // is_game_hotkey
+                        stmt.setBoolean(12, keyCombo.getIsSystemShortcut() != null ? keyCombo.getIsSystemShortcut() : false); // is_system_shortcut
                         
                         stmt.addBatch();
                         addedToBatch++;
@@ -2633,7 +2643,7 @@ public class DatabaseTableOperations
                 
                 DataStructures.ProjectilesData projectilesData = tickData.getProjectiles();
                 
-                if (projectilesData == null || projectilesData.getActiveProjectileCount() == 0) {
+                if (projectilesData == null) {
                     nullProjectileData++;
                     continue;
                 }
@@ -2690,7 +2700,10 @@ public class DatabaseTableOperations
             "bank_organization_score, tab_switch_count, total_deposits, " +
             "total_withdrawals, time_spent_in_bank, recent_deposits, " +
             "recent_withdrawals, noted_items_count) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+            "RETURNING id";
+        
+        List<Long> bankDataIds = new ArrayList<>();
         
         try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
             int addedToBatch = 0;
@@ -2739,44 +2752,234 @@ public class DatabaseTableOperations
                     stmt.setObject(23, bankData.getRecentWithdrawals()); // recent_withdrawals
                     stmt.setObject(24, bankData.getNotedItemsCount()); // noted_items_count
                     
-                    stmt.addBatch();
-                    addedToBatch++;
+                    // Execute single row and get generated key
+                    try (ResultSet generatedKeys = stmt.executeQuery()) {
+                        if (generatedKeys.next()) {
+                            Long bankDataId = generatedKeys.getLong(1);
+                            bankDataIds.add(bankDataId);
+                            addedToBatch++;
+                            log.debug("[DATABASE-BATCH] Inserted bank_data record with ID: {}", bankDataId);
+                        } else {
+                            log.warn("[DATABASE-BATCH] No generated key returned for bank_data insert");
+                        }
+                    }
                     
                 } catch (Exception e) {
-                    log.error("[DATABASE-BATCH] Failed to add bank record to batch for tick {}: {}", 
+                    log.error("[DATABASE-BATCH] Failed to insert bank record for tick {}: {}", 
                         tickData.getTickNumber(), e.getMessage());
                     throw e;
                 }
             }
             
-            log.info("[DATABASE-BATCH] Bank data - Added to batch: {}, Null bank data: {}", 
+            log.info("[DATABASE-BATCH] Bank data - Inserted: {}, Null bank data: {}", 
                 addedToBatch, nullBankData);
+        }
+        
+        // Insert bank items and actions using the generated bank_data IDs
+        if (!bankDataIds.isEmpty()) {
+            insertBankItemsBatch(conn, batch, bankDataIds);
+            insertBankActionsBatch(conn, batch, bankDataIds);
+        } else {
+            log.debug("[DATABASE-BATCH] No bank_data IDs generated - skipping bank items and actions insertion");
+        }
+    }
+    
+    /**
+     * Insert bank items batch - handles individual bank item records
+     */
+    private void insertBankItemsBatch(Connection conn, List<TickDataCollection> batch, List<Long> bankDataIds) throws SQLException
+    {
+        if (bankDataIds == null || bankDataIds.isEmpty()) {
+            log.debug("[DATABASE-BATCH] No bank_data_ids provided - skipping bank items insertion");
+            return;
+        }
+
+        String insertSQL = 
+            "INSERT INTO bank_items (bank_data_id, session_id, tick_number, " +
+            "item_id, item_name, quantity, item_value, slot_position, tab_number, " +
+            "coordinate_x, coordinate_y, is_noted, is_stackable, category, ge_price) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+            int addedToBatch = 0;
+            int nullBankItems = 0;
+            
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long bankDataId = i < bankDataIds.size() ? bankDataIds.get(i) : null;
+                
+                if (tickData == null || bankDataId == null) {
+                    continue;
+                }
+                
+                DataStructures.BankData bankData = tickData.getBankData();
+                if (bankData == null || bankData.getBankItems() == null || bankData.getBankItems().isEmpty()) {
+                    nullBankItems++;
+                    continue;
+                }
+                
+                for (DataStructures.BankItemData bankItem : bankData.getBankItems()) {
+                    if (bankItem != null) {
+                        try {
+                            stmt.setLong(1, bankDataId);
+                            stmt.setObject(2, tickData.getSessionId());
+                            stmt.setObject(3, tickData.getTickNumber());
+                            stmt.setInt(4, bankItem.getItemId() != null ? bankItem.getItemId() : 0);
+                            stmt.setString(5, bankItem.getItemName() != null ? bankItem.getItemName() : "Unknown");
+                            stmt.setInt(6, bankItem.getQuantity() != null ? bankItem.getQuantity() : 0);
+                            stmt.setLong(7, bankItem.getItemValue() != null ? bankItem.getItemValue() : 0);
+                            stmt.setInt(8, bankItem.getSlotPosition() != null ? bankItem.getSlotPosition() : 0);
+                            stmt.setInt(9, bankItem.getTabNumber() != null ? bankItem.getTabNumber() : 0);
+                            stmt.setObject(10, bankItem.getCoordinateX(), java.sql.Types.INTEGER);
+                            stmt.setObject(11, bankItem.getCoordinateY(), java.sql.Types.INTEGER);
+                            stmt.setBoolean(12, bankItem.getIsNoted() != null ? bankItem.getIsNoted() : false);
+                            stmt.setBoolean(13, bankItem.getIsStackable() != null ? bankItem.getIsStackable() : false);
+                            stmt.setString(14, bankItem.getCategory());
+                            stmt.setObject(15, bankItem.getGePrice(), java.sql.Types.BIGINT);
+                            
+                            stmt.addBatch();
+                            addedToBatch++;
+                        } catch (Exception e) {
+                            log.error("[DATABASE-BATCH] Failed to add bank item to batch: {}", e.getMessage());
+                            throw e;
+                        }
+                    }
+                }
+            }
+            
+            log.info("[DATABASE-BATCH] Bank items - Added to batch: {}, Null bank data: {}", 
+                addedToBatch, nullBankItems);
             
             if (addedToBatch > 0) {
                 int[] results = stmt.executeBatch();
-                log.info("[DATABASE-BATCH] Bank data batch executed: {} records", results.length);
+                log.info("[DATABASE-BATCH] Bank items batch executed: {} records", results.length);
             } else {
-                log.debug("[DATABASE-BATCH] No bank data records to insert - skipping batch execution");
+                log.debug("[DATABASE-BATCH] No bank items to insert - skipping batch execution");
             }
         }
     }
     
     /**
+     * Insert bank actions batch - handles banking action records  
+     */
+    private void insertBankActionsBatch(Connection conn, List<TickDataCollection> batch, List<Long> bankDataIds) throws SQLException
+    {
+        if (bankDataIds == null || bankDataIds.isEmpty()) {
+            log.debug("[DATABASE-BATCH] No bank_data_ids provided - skipping bank actions insertion");
+            return;
+        }
+
+        String insertSQL = 
+            "INSERT INTO bank_actions (bank_data_id, session_id, tick_number, " +
+            "action_type, item_id, item_name, quantity, method_used, action_timestamp, " +
+            "from_tab, to_tab, search_query, duration_ms, is_noted) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(insertSQL)) {
+            int addedToBatch = 0;
+            int nullBankActions = 0;
+            
+            for (int i = 0; i < batch.size(); i++) {
+                TickDataCollection tickData = batch.get(i);
+                Long bankDataId = i < bankDataIds.size() ? bankDataIds.get(i) : null;
+                
+                if (tickData == null || bankDataId == null) {
+                    continue;
+                }
+                
+                DataStructures.BankData bankData = tickData.getBankData();
+                if (bankData == null || bankData.getRecentActions() == null || bankData.getRecentActions().isEmpty()) {
+                    nullBankActions++;
+                    continue;
+                }
+                
+                for (DataStructures.BankActionData bankAction : bankData.getRecentActions()) {
+                    if (bankAction != null) {
+                        try {
+                            stmt.setLong(1, bankDataId);
+                            stmt.setObject(2, tickData.getSessionId());
+                            stmt.setObject(3, tickData.getTickNumber());
+                            stmt.setString(4, bankAction.getActionType() != null ? bankAction.getActionType() : "unknown");
+                            stmt.setObject(5, bankAction.getItemId(), java.sql.Types.INTEGER);
+                            stmt.setString(6, bankAction.getItemName());
+                            stmt.setObject(7, bankAction.getQuantity(), java.sql.Types.INTEGER);
+                            stmt.setString(8, bankAction.getMethodUsed());
+                            stmt.setLong(9, bankAction.getActionTimestamp() != null ? bankAction.getActionTimestamp() : System.currentTimeMillis());
+                            stmt.setObject(10, bankAction.getFromTab(), java.sql.Types.INTEGER);
+                            stmt.setObject(11, bankAction.getToTab(), java.sql.Types.INTEGER);
+                            stmt.setString(12, bankAction.getSearchQuery());
+                            stmt.setInt(13, bankAction.getDurationMs() != null ? bankAction.getDurationMs() : 0);
+                            stmt.setBoolean(14, bankAction.getIsNoted() != null ? bankAction.getIsNoted() : false);
+                            
+                            stmt.addBatch();
+                            addedToBatch++;
+                        } catch (Exception e) {
+                            log.error("[DATABASE-BATCH] Failed to add bank action to batch: {}", e.getMessage());
+                            throw e;
+                        }
+                    }
+                }
+            }
+            
+            log.info("[DATABASE-BATCH] Bank actions - Added to batch: {}, Null bank actions: {}", 
+                addedToBatch, nullBankActions);
+            
+            if (addedToBatch > 0) {
+                int[] results = stmt.executeBatch();
+                log.info("[DATABASE-BATCH] Bank actions batch executed: {} records", results.length);
+            } else {
+                log.debug("[DATABASE-BATCH] No bank actions to insert - skipping batch execution");
+            }
+        }
+    }
+    
+    /**
+     * Force immediate processing of all pending batch data
+     * CRITICAL: Must be called before shutdown to prevent data loss
+     */
+    public void forceFlushBatch()
+    {
+        log.info("[DATABASE-FORCE-FLUSH] forceFlushBatch called - queue size: {}", pendingBatch.size());
+        
+        if (!pendingBatch.isEmpty() && connectionManager.isConnected()) {
+            try {
+                log.info("[DATABASE-FORCE-FLUSH] Force processing {} pending ticks before shutdown", pendingBatch.size());
+                processBatch();
+                log.info("[DATABASE-FORCE-FLUSH] Force flush completed successfully");
+            } catch (Exception e) {
+                log.error("[DATABASE-FORCE-FLUSH] Error during force flush", e);
+            }
+        } else {
+            log.debug("[DATABASE-FORCE-FLUSH] No data to flush - queue empty: {}, connected: {}", 
+                pendingBatch.isEmpty(), connectionManager.isConnected());
+        }
+    }
+    
+    /**
      * Shutdown table operations
+     * CRITICAL FIX: Force flush pending batches before shutdown to prevent data loss
      */
     public void shutdown()
     {
+        log.info("[DATABASE-SHUTDOWN] Starting shutdown - pending batches: {}", pendingBatch.size());
+        
+        // CRITICAL FIX: Force flush all pending data before shutdown
+        forceFlushBatch();
+        
         if (batchExecutor != null && !batchExecutor.isShutdown()) {
+            log.debug("[DATABASE-SHUTDOWN] Shutting down batch executor");
             batchExecutor.shutdown();
             try {
                 if (!batchExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    log.warn("[DATABASE-SHUTDOWN] Executor did not terminate gracefully, forcing shutdown");
                     batchExecutor.shutdownNow();
                 }
             } catch (InterruptedException e) {
+                log.error("[DATABASE-SHUTDOWN] Interrupted during shutdown, forcing immediate shutdown");
                 batchExecutor.shutdownNow();
                 Thread.currentThread().interrupt();
             }
         }
-        log.debug("DatabaseTableOperations shutdown completed");
+        log.info("[DATABASE-SHUTDOWN] DatabaseTableOperations shutdown completed");
     }
 }

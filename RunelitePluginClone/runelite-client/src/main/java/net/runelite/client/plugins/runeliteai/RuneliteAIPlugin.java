@@ -105,7 +105,8 @@ public class RuneliteAIPlugin extends Plugin
         @Override
         public void keyPressed(KeyEvent e)
         {
-            log.debug("[INPUT-DEBUG] KeyListener.keyPressed called - keyCode: {}", e.getKeyCode());
+            System.out.println("[KEY-LISTENER-DEBUG] *** KeyListener.keyPressed called - keyCode: " + e.getKeyCode() + " ***");
+            log.info("[KEY-LISTENER-DEBUG] KeyListener.keyPressed called - keyCode: {}", e.getKeyCode());
             keyPressCountSinceTick.incrementAndGet();
             long pressTime = System.currentTimeMillis();
             recentKeyPresses.put(e.getKeyCode(), pressTime);
@@ -122,6 +123,8 @@ public class RuneliteAIPlugin extends Plugin
         @Override
         public void keyReleased(KeyEvent e)
         {
+            System.out.println("[KEY-LISTENER-DEBUG] *** KeyListener.keyReleased called - keyCode: " + e.getKeyCode() + " ***");
+            log.info("[KEY-LISTENER-DEBUG] KeyListener.keyReleased called - keyCode: {}", e.getKeyCode());
             currentlyHeldKeys.remove(e.getKeyCode());
             Long pressTime = keyPressTimestamps.remove(e.getKeyCode());
             
@@ -251,9 +254,19 @@ public class RuneliteAIPlugin extends Plugin
         initializeManagers();
         
         // Register input listeners
-        keyManager.registerKeyListener(keyListener);
-        mouseManager.registerMouseListener(mouseListener);
-        log.debug("[INPUT-DEBUG] Input listeners registered - KeyListener and MouseListener");
+        try {
+            keyManager.registerKeyListener(keyListener);
+            log.info("[INPUT-DEBUG] KeyListener registered successfully with KeyManager");
+        } catch (Exception e) {
+            log.error("[INPUT-DEBUG] FAILED to register KeyListener: {}", e.getMessage(), e);
+        }
+        
+        try {
+            mouseManager.registerMouseListener(mouseListener);
+            log.info("[INPUT-DEBUG] MouseListener registered successfully with MouseManager");
+        } catch (Exception e) {
+            log.error("[INPUT-DEBUG] FAILED to register MouseListener: {}", e.getMessage(), e);
+        }
         
         // Note: Database session will be initialized when player logs in
         // This prevents duplicate sessions from being created
@@ -263,10 +276,6 @@ public class RuneliteAIPlugin extends Plugin
         
         // Register overlay
         overlayManager.add(overlay);
-        
-        // Register input listeners
-        keyManager.registerKeyListener(keyListener);
-        mouseManager.registerMouseListener(mouseListener);
         
         log.info("RuneLiteAI Plugin startup completed in {}ms - waiting for login to initialize database session", 
                 System.currentTimeMillis() - startupTimestamp);
@@ -292,6 +301,10 @@ public class RuneliteAIPlugin extends Plugin
         
         if (databaseManager != null) {
             try {
+                // CRITICAL FIX: Force flush pending batches before finalizing session
+                log.info("[SHUTDOWN-FIX] Force flushing pending batches before session finalization");
+                databaseManager.forceFlushBatch();
+                
                 databaseManager.finalizeSession(currentSessionId);
                 databaseManager.shutdown();
             } catch (Exception e) {
@@ -579,6 +592,10 @@ public class RuneliteAIPlugin extends Plugin
             // Player logged out or disconnected
             if (currentSessionId != null && config.enableDatabaseLogging()) {
                 try {
+                    // CRITICAL FIX: Force flush pending batches before finalizing session on logout
+                    log.info("[LOGOUT-FIX] Force flushing pending batches before session finalization");
+                    databaseManager.forceFlushBatch();
+                    
                     databaseManager.finalizeSession(currentSessionId);
                     currentSessionId = null;
                     log.info("Session finalized due to logout/disconnect");
@@ -907,6 +924,9 @@ public class RuneliteAIPlugin extends Plugin
             String keyName = getKeyName(e.getKeyCode());
             String keyChar = e.getKeyChar() != KeyEvent.CHAR_UNDEFINED ? String.valueOf(e.getKeyChar()) : null;
             
+            log.debug("[KEY-DEBUG] Recording key press - code: {}, name: {}, char: {}", 
+                e.getKeyCode(), keyName, keyChar);
+            
             DataStructures.KeyPressData keyPress = DataStructures.KeyPressData.builder()
                 .keyCode(e.getKeyCode())
                 .keyName(keyName)
@@ -923,7 +943,9 @@ public class RuneliteAIPlugin extends Plugin
                 .shiftHeld(e.isShiftDown())
                 .build();
                 
-            recentKeyPressDetails.offer(keyPress);
+            boolean added = recentKeyPressDetails.offer(keyPress);
+            log.debug("[KEY-DEBUG] Key press added to queue: {}, queue size now: {}", 
+                added, recentKeyPressDetails.size());
             
             // Clean up old entries (keep last 100)
             while (recentKeyPressDetails.size() > 100) {
@@ -982,16 +1004,15 @@ public class RuneliteAIPlugin extends Plugin
             String keyName = getKeyName(e.getKeyCode());
             combination.append(keyName);
             
-            // FIXED: Enhanced key combination detection with debugging
-            log.debug("[KEY-COMBO-DEBUG] Key pressed: {} ({}), Modifiers detected: {}, Is combination: {}", 
-                keyName, e.getKeyCode(), modifiers.size(), !modifiers.isEmpty());
-            
-            // Only record if it's actually a combination (modifier + non-modifier key)
-            // Also exclude if the key itself is a modifier key to avoid double-recording
+            // Check if the key itself is a modifier key to avoid double-recording
             boolean isModifierKey = (e.getKeyCode() == KeyEvent.VK_CONTROL || 
                                    e.getKeyCode() == KeyEvent.VK_ALT || 
                                    e.getKeyCode() == KeyEvent.VK_SHIFT ||
                                    e.getKeyCode() == KeyEvent.VK_META);
+            
+            // FIXED: Enhanced key combination detection with debugging  
+            log.debug("[KEY-COMBO-DEBUG] Key pressed: {} ({}), Modifiers detected: {}, Is combination: {}, isModifierKey: {}", 
+                keyName, e.getKeyCode(), modifiers.size(), !modifiers.isEmpty(), isModifierKey);
             
             if (!modifiers.isEmpty() && !isModifierKey) {
                 log.debug("[KEY-COMBO-DEBUG] Recording combination: '{}' with {} modifiers", 
@@ -1015,6 +1036,35 @@ public class RuneliteAIPlugin extends Plugin
                 // Clean up old entries
                 while (recentKeyCombinations.size() > 50) {
                     recentKeyCombinations.poll();
+                }
+            } else if (modifiers.isEmpty() && !isModifierKey) {
+                // ENHANCED: Also track common gaming keys as "combinations" for analysis
+                // This helps capture gaming patterns like WASD, spacebar, number keys, etc.
+                if (isGamingKey(e.getKeyCode())) {
+                    log.debug("[KEY-COMBO-DEBUG] Recording gaming key sequence: '{}' as pseudo-combination", keyName);
+                    
+                    DataStructures.KeyCombinationData keyCombination = DataStructures.KeyCombinationData.builder()
+                        .keyCombination(keyName + "_gaming")
+                        .primaryKeyCode(e.getKeyCode())
+                        .modifierKeys(new ArrayList<>()) // No modifiers
+                        .combinationTimestamp(pressTime)
+                        .durationMs(null)
+                        .combinationType("gaming_key")
+                        .isGameHotkey(true)
+                        .isSystemShortcut(false)
+                        .build();
+
+                    recentKeyCombinations.offer(keyCombination);
+                    log.debug("[KEY-COMBO-DEBUG] Successfully added gaming key to queue. Queue size: {}", 
+                        recentKeyCombinations.size());
+                        
+                    // Clean up old entries
+                    while (recentKeyCombinations.size() > 50) {
+                        recentKeyCombinations.poll();
+                    }
+                } else {
+                    log.debug("[KEY-COMBO-DEBUG] Not recording - isModifierKey: {}, modifiersEmpty: {}, isGamingKey: {}", 
+                        isModifierKey, modifiers.isEmpty(), isGamingKey(e.getKeyCode()));
                 }
             } else {
                 log.debug("[KEY-COMBO-DEBUG] Not recording - isModifierKey: {}, modifiersEmpty: {}", 
@@ -1258,5 +1308,56 @@ public class RuneliteAIPlugin extends Plugin
                            Math.pow(currentYaw - middleMouseStartYaw, 2));
         }
         return 0.0;
+    }
+    
+    /**
+     * Determine if a key is commonly used in gaming and should be tracked
+     */
+    private boolean isGamingKey(int keyCode)
+    {
+        // Movement keys (WASD)
+        if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_A || 
+            keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_D) {
+            return true;
+        }
+        
+        // Action keys
+        if (keyCode == KeyEvent.VK_SPACE ||    // Jump/run
+            keyCode == KeyEvent.VK_SHIFT ||    // Walk/run modifier
+            keyCode == KeyEvent.VK_ENTER ||    // Chat/confirm
+            keyCode == KeyEvent.VK_ESCAPE ||   // Menu/cancel
+            keyCode == KeyEvent.VK_TAB) {      // Interface toggle
+            return true;
+        }
+        
+        // Number keys (hotkeys for spells/items/prayers)
+        if (keyCode >= KeyEvent.VK_1 && keyCode <= KeyEvent.VK_9) {
+            return true;
+        }
+        
+        // Function keys (F1-F12 for interface tabs and settings)
+        if (keyCode >= KeyEvent.VK_F1 && keyCode <= KeyEvent.VK_F12) {
+            return true;
+        }
+        
+        // Arrow keys (camera/interface navigation)
+        if (keyCode >= KeyEvent.VK_LEFT && keyCode <= KeyEvent.VK_DOWN) {
+            return true;
+        }
+        
+        // Additional common gaming keys
+        if (keyCode == KeyEvent.VK_Q ||        // Quick-prayer/special attack
+            keyCode == KeyEvent.VK_E ||        // Interact/examine
+            keyCode == KeyEvent.VK_R ||        // Run toggle
+            keyCode == KeyEvent.VK_T ||        // Auto-retaliate
+            keyCode == KeyEvent.VK_DELETE ||   // Drop items
+            keyCode == KeyEvent.VK_HOME ||     // Camera reset
+            keyCode == KeyEvent.VK_END ||      // Camera reset  
+            keyCode == KeyEvent.VK_PAGE_UP ||  // Zoom in
+            keyCode == KeyEvent.VK_PAGE_DOWN) { // Zoom out
+            return true;
+        }
+        
+        return false;
     }
 }

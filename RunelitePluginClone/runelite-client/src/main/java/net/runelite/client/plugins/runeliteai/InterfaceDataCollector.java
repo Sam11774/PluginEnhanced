@@ -6,6 +6,7 @@ package net.runelite.client.plugins.runeliteai;
 
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.plugins.runeliteai.TickDataCollection.TickDataCollectionBuilder;
 import net.runelite.api.widgets.WidgetInfo;
@@ -38,6 +39,7 @@ public class InterfaceDataCollector
     // Core dependencies
     private final Client client;
     private final ItemManager itemManager;
+    private DataCollectionManager dataCollectionManager; // Reference to get recent item changes
     
     // Interface interaction tracking
     private int currentTickInterfaceInteractions = 0;
@@ -52,6 +54,13 @@ public class InterfaceDataCollector
         this.client = client;
         this.itemManager = itemManager;
         log.debug("InterfaceDataCollector initialized");
+    }
+    
+    /**
+     * Set reference to DataCollectionManager for accessing recent item changes
+     */
+    public void setDataCollectionManager(DataCollectionManager dataCollectionManager) {
+        this.dataCollectionManager = dataCollectionManager;
     }
     
     /**
@@ -239,21 +248,198 @@ public class InterfaceDataCollector
     }
     
     /**
-     * Collect real bank data
+     * Collect real bank data with comprehensive item and action tracking
      */
     private BankData collectRealBankData()
     {
         try {
-            boolean bankOpen = isBankInterface();
+            ItemContainer bankContainer = client.getItemContainer(InventoryID.BANK);
+            boolean bankOpen = bankContainer != null;
             
-            return BankData.builder()
-                .bankOpen(bankOpen)
-                .totalBankValue(0L)
+            if (!bankOpen) {
+                return BankData.builder()
+                    .bankOpen(false)
+                    .currentTab(0)
+                    .searchActive(false)
+                    .bankInterfaceType("none")
+                    .bankOrganizationScore(0.0f)
+                    .tabSwitchCount(0)
+                    .timeSpentInBank(0L)
+                    .build();
+            }
+            
+            // Process bank container data
+            Item[] bankItems = bankContainer.getItems();
+            
+            // Get real bank capacity from widgets instead of hardcoded value
+            int maxBankSlots = getBankCapacityFromWidget();
+            int totalUniqueItems = 0;
+            int usedSlots = 0;
+            long totalBankValue = 0;
+            
+            // Process individual bank items with comprehensive metadata
+            List<DataStructures.BankItemData> bankItemsList = new ArrayList<>();
+            
+            for (int slot = 0; slot < bankItems.length; slot++) {
+                Item item = bankItems[slot];
+                
+                // Only process items with valid ID and quantity > 0 (skip placeholders)
+                if (item != null && item.getId() > 0 && item.getQuantity() > 0) {
+                    totalUniqueItems++;
+                    usedSlots++;
+                    
+                    // Get item name and properties
+                    String itemName = "Unknown";
+                    long itemValue = 0;
+                    
+                    try {
+                        if (itemManager != null) {
+                            itemName = itemManager.getItemComposition(item.getId()).getName();
+                            itemValue = (long) item.getQuantity() * itemManager.getItemPrice(item.getId());
+                            totalBankValue += itemValue;
+                        }
+                    } catch (Exception e) {
+                        log.debug("[BANK-ITEM-DEBUG] Error getting item details for ID {}: {}", item.getId(), e.getMessage());
+                        itemName = "Item_" + item.getId();
+                    }
+                    
+                    // Bank items are never noted - noted items only exist in inventory/transactions
+                    boolean isNoted = false;
+                    boolean isStackable = isItemStackable(item.getId());
+                    
+                    DataStructures.BankItemData bankItemData = DataStructures.BankItemData.builder()
+                        .itemId(item.getId())
+                        .itemName(itemName)
+                        .quantity(item.getQuantity())
+                        .itemValue(itemValue)
+                        .slotPosition(slot)
+                        .tabNumber(getCurrentBankTab())
+                        .coordinateX(slot % 8) // Bank slots are in 8-column grid
+                        .coordinateY(slot / 8)
+                        .isNoted(isNoted)
+                        .isStackable(isStackable)
+                        .category(getItemCategory(item.getId()))
+                        .gePrice(getGrandExchangePrice(item.getId()).intValue())
+                        .build();
+                    
+                    bankItemsList.add(bankItemData);
+                    
+                    // Debug logging for first few items
+                    if (totalUniqueItems <= 5) {
+                        log.debug("[BANK-DEBUG] Bank item: {} x{} '{}' in slot {} (tab {})", 
+                            item.getId(), item.getQuantity(), itemName, slot, getCurrentBankTab());
+                    }
+                }
+            }
+            
+            // Track recent banking activity with detailed action analysis
+            List<DataStructures.BankActionData> recentActionsList = new ArrayList<>();
+            int recentDeposits = 0;
+            int recentWithdrawals = 0;
+            
+            if (dataCollectionManager != null) {
+                Queue<ItemContainerChanged> itemChanges = dataCollectionManager.getRecentItemChanges();
+                
+                for (ItemContainerChanged change : itemChanges) {
+                    if (change != null) {
+                        DataStructures.BankActionData actionData = null;
+                        
+                        // Extract item details from the container change
+                        Item[] changedItems = change.getItemContainer().getItems();
+                        if (changedItems != null && changedItems.length > 0) {
+                            // Find the most significant item change (highest value/quantity change)
+                            Item mostSignificantItem = null;
+                            int maxQuantity = 0;
+                            
+                            for (Item item : changedItems) {
+                                if (item != null && item.getId() > 0 && item.getQuantity() > maxQuantity) {
+                                    mostSignificantItem = item;
+                                    maxQuantity = item.getQuantity();
+                                }
+                            }
+                            
+                            // Extract item details if found
+                            Integer itemId = null;
+                            String itemName = null;
+                            Integer quantity = null;
+                            
+                            if (mostSignificantItem != null) {
+                                itemId = mostSignificantItem.getId();
+                                quantity = mostSignificantItem.getQuantity();
+                                
+                                try {
+                                    if (itemManager != null) {
+                                        itemName = itemManager.getItemComposition(itemId).getName();
+                                    } else {
+                                        itemName = "Item_" + itemId;
+                                    }
+                                } catch (Exception e) {
+                                    itemName = "Item_" + itemId;
+                                    log.debug("[BANK-ACTION-DEBUG] Error getting item name for ID {}: {}", itemId, e.getMessage());
+                                }
+                            }
+                            
+                            if (change.getContainerId() == InventoryID.BANK.getId()) {
+                                recentDeposits++;
+                                actionData = DataStructures.BankActionData.builder()
+                                    .actionType("deposit")
+                                    .itemId(itemId)
+                                    .itemName(itemName)
+                                    .quantity(quantity)
+                                    .actionTimestamp(System.currentTimeMillis())
+                                    .methodUsed("1") // Default method
+                                    .fromTab(getCurrentBankTab())
+                                    .isNoted(false)
+                                    .durationMs(0)
+                                    .build();
+                            } else if (change.getContainerId() == InventoryID.INVENTORY.getId()) {
+                                recentWithdrawals++;
+                                actionData = DataStructures.BankActionData.builder()
+                                    .actionType("withdrawal")
+                                    .itemId(itemId)
+                                    .itemName(itemName)
+                                    .quantity(quantity)
+                                    .actionTimestamp(System.currentTimeMillis())
+                                    .methodUsed("1") // Default method
+                                    .fromTab(getCurrentBankTab())
+                                    .isNoted(false)
+                                    .durationMs(0)
+                                    .build();
+                            }
+                            
+                            if (actionData != null) {
+                                recentActionsList.add(actionData);
+                                log.debug("[BANK-ACTION-DEBUG] Added banking action: {} for item {} (qty: {})", 
+                                    actionData.getActionType(), itemName, quantity);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return DataStructures.BankData.builder()
+                .bankOpen(true)
+                .totalUniqueItems(totalUniqueItems)
+                .usedBankSlots(usedSlots)
+                .maxBankSlots(maxBankSlots)
+                .totalBankValue(totalBankValue)
+                .currentTab(getCurrentBankTab())
+                .searchQuery(getBankSearchQuery())
+                .bankInterfaceType(getBankInterfaceType())
+                .searchActive(isBankSearchActive())
+                .bankOrganizationScore(0.0f) // Placeholder
+                .tabSwitchCount(0) // Placeholder
+                .timeSpentInBank(0L) // Placeholder
+                .bankItems(bankItemsList)
+                .recentActions(recentActionsList)
+                .recentDeposits(recentDeposits)
+                .recentWithdrawals(recentWithdrawals)
+                .notedItemsCount(0) // Bank items are never noted
                 .build();
                 
         } catch (Exception e) {
-            log.warn("Error collecting bank data", e);
-            return BankData.builder()
+            log.warn("[BANK-DEBUG] Error collecting bank data: {}", e.getMessage());
+            return DataStructures.BankData.builder()
                 .bankOpen(false)
                 .totalBankValue(0L)
                 .build();
@@ -487,5 +673,112 @@ public class InterfaceDataCollector
         } catch (Exception e) {
             return "Unknown Shop";
         }
+    }
+    
+    // Banking helper methods
+    
+    private boolean isItemStackable(int itemId) {
+        try {
+            if (itemManager != null) {
+                return itemManager.getItemComposition(itemId).isStackable();
+            }
+        } catch (Exception e) {
+            log.debug("Error checking if item {} is stackable: {}", itemId, e.getMessage());
+        }
+        return false;
+    }
+    
+    private int getCurrentBankTab() {
+        // Default to tab 0 - could be enhanced with widget detection
+        return 0;
+    }
+    
+    private String getBankSearchQuery() {
+        // Try to get search query from bank interface - simplified for now
+        return null;
+    }
+    
+    private String getBankInterfaceType() {
+        // Detect bank interface type - simplified implementation
+        return "bank_booth";
+    }
+    
+    private boolean isBankSearchActive() {
+        // Check if bank search is active - simplified
+        return false;
+    }
+    
+    private String getItemCategory(int itemId) {
+        // Simple item categorization based on item ID ranges
+        if (itemId >= 1 && itemId <= 100) return "weapons";
+        if (itemId >= 101 && itemId <= 200) return "armor";
+        if (itemId >= 201 && itemId <= 300) return "food";
+        if (itemId >= 301 && itemId <= 400) return "potions";
+        if (itemId >= 401 && itemId <= 500) return "runes";
+        return "misc";
+    }
+    
+    private Long getGrandExchangePrice(int itemId) {
+        try {
+            if (itemManager != null) {
+                return (long) itemManager.getItemPrice(itemId);
+            }
+        } catch (Exception e) {
+            log.debug("Error getting GE price for item {}: {}", itemId, e.getMessage());
+        }
+        return 0L;
+    }
+    
+    /**
+     * Get real bank capacity from widget instead of hardcoded value
+     */
+    private int getBankCapacityFromWidget() {
+        try {
+            // Try to get bank capacity from the capacity widget
+            Widget capacityWidget = client.getWidget(WidgetInfo.BANK_ITEM_COUNT_BOTTOM);
+            if (capacityWidget != null && !capacityWidget.isHidden()) {
+                String text = capacityWidget.getText();
+                if (text != null && text.contains("/")) {
+                    // Format is typically "used/capacity" like "123/416"
+                    String[] parts = text.split("/");
+                    if (parts.length == 2) {
+                        try {
+                            int capacity = Integer.parseInt(parts[1].trim());
+                            log.debug("[BANK-CAPACITY] Found bank capacity from widget: {}", capacity);
+                            return capacity;
+                        } catch (NumberFormatException e) {
+                            log.debug("[BANK-CAPACITY] Failed to parse capacity from widget text: {}", text);
+                        }
+                    }
+                }
+            }
+            
+            // Fallback: try to get from occupied slots widget
+            Widget occupiedWidget = client.getWidget(WidgetInfo.BANK_ITEM_COUNT_TOP);
+            if (occupiedWidget != null && !occupiedWidget.isHidden()) {
+                String text = occupiedWidget.getText();
+                if (text != null && text.contains("/")) {
+                    String[] parts = text.split("/");
+                    if (parts.length == 2) {
+                        try {
+                            int capacity = Integer.parseInt(parts[1].trim());
+                            log.debug("[BANK-CAPACITY] Found bank capacity from occupied widget: {}", capacity);
+                            return capacity;
+                        } catch (NumberFormatException e) {
+                            log.debug("[BANK-CAPACITY] Failed to parse capacity from occupied widget text: {}", text);
+                        }
+                    }
+                }
+            }
+            
+            log.debug("[BANK-CAPACITY] Could not find bank capacity widget, using fallback");
+            
+        } catch (Exception e) {
+            log.debug("[BANK-CAPACITY] Error getting bank capacity from widget: {}", e.getMessage());
+        }
+        
+        // Fallback to reasonable default if we can't get the real capacity
+        // Most accounts have 400+ slots, f2p has ~70 slots
+        return 416; // This is still a fallback but better than before since we tried to get real value
     }
 }

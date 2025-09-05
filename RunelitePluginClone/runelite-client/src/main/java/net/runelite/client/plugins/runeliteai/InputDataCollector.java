@@ -208,10 +208,25 @@ public class InputDataCollector
      */
     private KeyboardInputData collectKeyboardData()
     {
-        // Simplified keyboard data collection
-        // In a full implementation, this would track key states, combinations, etc.
-        return KeyboardInputData.builder()
-            .build();
+        try {
+            // Get keyboard activity from plugin
+            int keyPressCount = plugin.getAndResetKeyPressCount();
+            int activeKeysCount = plugin.getCurrentlyHeldKeysCount();
+            
+            log.debug("[KEYBOARD-DEBUG] Collecting keyboard data - keyPressCount: {}, activeKeysCount: {}", 
+                keyPressCount, activeKeysCount);
+            
+            return KeyboardInputData.builder()
+                .keyPressCount(keyPressCount)
+                .activeKeysCount(activeKeysCount)
+                .build();
+        } catch (Exception e) {
+            log.warn("Error collecting keyboard input data: {}", e.getMessage());
+            return KeyboardInputData.builder()
+                .keyPressCount(0)
+                .activeKeysCount(0)
+                .build();
+        }
     }
     
     /**
@@ -254,8 +269,15 @@ public class InputDataCollector
     {
         try {
             DataStructures.EnhancedInputData enhancedInput = plugin.getEnhancedInputData();
-            if (enhancedInput != null && enhancedInput.getKeyPresses() != null) {
-                return new ArrayList<>(enhancedInput.getKeyPresses());
+            if (enhancedInput != null) {
+                if (enhancedInput.getKeyPresses() != null && !enhancedInput.getKeyPresses().isEmpty()) {
+                    log.debug("[KEY-DEBUG] Collecting {} key press details for database", enhancedInput.getKeyPresses().size());
+                    return new ArrayList<>(enhancedInput.getKeyPresses());
+                } else {
+                    log.debug("[KEY-DEBUG] No key presses to collect this tick");
+                }
+            } else {
+                log.debug("[KEY-DEBUG] Enhanced input data is null");
             }
         } catch (Exception e) {
             log.warn("Failed to collect key press details: {}", e.getMessage());

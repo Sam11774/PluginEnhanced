@@ -90,6 +90,8 @@ public class DataStructures
         private Integer regionId;
         private Integer chunkX;
         private Integer chunkY;
+        private Integer localX;
+        private Integer localY;
         private String locationName;
         private String areaType;
         private Boolean inWilderness;
@@ -97,7 +99,7 @@ public class DataStructures
         private Boolean inPvp;
         private Boolean inMultiCombat;
         
-        public int getDataPointCount() { return 14; }
+        public int getDataPointCount() { return 16; }
         public long getEstimatedSize() { return 64 + (16 * 8) + (8 * 3) + 
             (locationName != null ? locationName.length() * 2 : 0) +
             (areaType != null ? areaType.length() * 2 : 0); }
@@ -228,6 +230,7 @@ public class DataStructures
         private Item[] inventoryItems;
         private Integer usedSlots;
         private Integer freeSlots;
+        private Integer totalQuantity;  // Total quantity of all items
         private Long totalValue;
         private Map<Integer, Integer> itemCounts;
         private String lastItemUsed;
@@ -735,9 +738,12 @@ public class DataStructures
         private String combatState;
         private Long lastAttackTime;
         private Integer damageDealt;
+        private Integer damageReceived;
+        private Integer maxHitDealt;
+        private Integer maxHitReceived;
         private Long lastCombatTick;
         
-        public int getDataPointCount() { return 13; }
+        public int getDataPointCount() { return 16; }
         public long getEstimatedSize() { 
             return 64 + (16 * 8) + (8 * 1) +
                 (targetName != null ? targetName.length() * 2 : 0) +

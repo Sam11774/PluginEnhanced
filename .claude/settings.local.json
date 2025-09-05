@@ -5,7 +5,8 @@
       "Bash(PGPASSWORD=sam11773 \"C:\\Program Files\\PostgreSQL\\17\\bin\\psql\":*)",
       "Bash(mvn:*)",
       "Bash(grep:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": [],

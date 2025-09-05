@@ -214,8 +214,21 @@ public class DatabaseConnectionManager
     private String getCurrentPlayerName()
     {
         if (client != null && client.getLocalPlayer() != null && client.getLocalPlayer().getName() != null) {
-            return client.getLocalPlayer().getName();
+            String playerName = client.getLocalPlayer().getName().trim();
+            if (!playerName.isEmpty()) {
+                log.debug("Retrieved player name from client: {}", playerName);
+                return playerName;
+            }
         }
+        
+        // Try to get username from client if LocalPlayer is null
+        if (client != null && client.getUsername() != null && !client.getUsername().trim().isEmpty()) {
+            String username = client.getUsername().trim();
+            log.debug("Retrieved username from client as fallback: {}", username);
+            return username;
+        }
+        
+        log.warn("Unable to retrieve player name - client or player not available, using fallback");
         return "UnknownPlayer";
     }
     
@@ -269,7 +282,7 @@ public class DatabaseConnectionManager
     }
     
     /**
-     * Finalize a session
+     * Finalize a session with proper total_ticks calculation
      */
     public void finalizeSession(Integer sessionId)
     {
@@ -278,16 +291,35 @@ public class DatabaseConnectionManager
         }
         
         try (Connection conn = getConnection()) {
-            String updateSession = "UPDATE sessions SET status = 'COMPLETED', end_time = ? WHERE session_id = ?";
+            // First, calculate the total_ticks from game_ticks table
+            int totalTicks = 0;
+            String countTicksQuery = "SELECT COUNT(*) FROM game_ticks WHERE session_id = ?";
+            
+            try (PreparedStatement countStmt = conn.prepareStatement(countTicksQuery)) {
+                countStmt.setInt(1, sessionId);
+                
+                try (ResultSet rs = countStmt.executeQuery()) {
+                    if (rs.next()) {
+                        totalTicks = rs.getInt(1);
+                        log.debug("Calculated total_ticks for session {}: {}", sessionId, totalTicks);
+                    }
+                }
+            }
+            
+            // Update the session with completion status, end time, and total_ticks
+            String updateSession = "UPDATE sessions SET status = 'COMPLETED', end_time = ?, total_ticks = ? WHERE session_id = ?";
             
             try (PreparedStatement stmt = conn.prepareStatement(updateSession)) {
                 stmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
-                stmt.setInt(2, sessionId);
+                stmt.setInt(2, totalTicks);
+                stmt.setInt(3, sessionId);
                 
                 int updated = stmt.executeUpdate();
                 if (updated > 0) {
                     activeSessions.remove(sessionId);
-                    log.debug("Session {} finalized", sessionId);
+                    log.info("Session {} finalized successfully with {} total ticks", sessionId, totalTicks);
+                } else {
+                    log.warn("No session found with ID {} to finalize", sessionId);
                 }
             }
             

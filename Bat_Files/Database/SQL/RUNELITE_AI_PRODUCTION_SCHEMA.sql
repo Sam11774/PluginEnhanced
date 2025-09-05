@@ -674,6 +674,9 @@ CREATE TABLE IF NOT EXISTS combat_data (
     combat_state VARCHAR(50),
     last_attack_time BIGINT,
     damage_dealt INTEGER DEFAULT 0,
+    damage_received INTEGER DEFAULT 0,
+    max_hit_dealt INTEGER DEFAULT 0,
+    max_hit_received INTEGER DEFAULT 0,
     last_combat_tick BIGINT,
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

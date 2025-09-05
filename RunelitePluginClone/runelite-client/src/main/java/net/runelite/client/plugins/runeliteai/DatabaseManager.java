@@ -115,13 +115,18 @@ public class DatabaseManager
      * Force immediate batch processing (for debugging)
      * 
      * This method maintains compatibility with the original API.
+     * CRITICAL FIX: Now properly delegates to table operations force flush
      */
     public void forceFlushBatch()
     {
         log.debug("DatabaseManager.forceFlushBatch() - delegating to table operations");
         
-        // Note: Implementation will be added when table operations is migrated
-        // For now, this is a placeholder to maintain API compatibility
+        if (tableOperations != null) {
+            tableOperations.forceFlushBatch();
+            log.debug("DatabaseManager.forceFlushBatch() completed - delegation successful");
+        } else {
+            log.error("DatabaseManager.forceFlushBatch() - tableOperations is null, cannot flush");
+        }
     }
     
     /**
@@ -267,7 +272,14 @@ public class DatabaseManager
      */
     public void finalizeSession(Integer sessionId)
     {
-        // TODO: Implement session finalization when needed
-        log.debug("finalizeSession({}) - placeholder for backward compatibility", sessionId);
+        log.debug("DatabaseManager.finalizeSession({}) - delegating to connection manager", sessionId);
+        
+        try {
+            connectionManager.finalizeSession(sessionId);
+            performanceMonitor.recordSuccess();
+        } catch (Exception e) {
+            performanceMonitor.recordError("Session finalization failed", e);
+            throw e;
+        }
     }
 }

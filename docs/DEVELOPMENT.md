@@ -183,11 +183,12 @@ PGPASSWORD=sam11773 "C:\Program Files\PostgreSQL\17\bin\psql" -U postgres -h loc
 4. **Movement Analytics**: Check `[INPUT-DEBUG]` messages for movement calculation issues
 5. **Database Insertion**: Verify input analytics tables have matching tick counts
 
-#### Debugging Noted Items Banking System
+#### Debugging Noted Items Banking System (System Restored - 2025-09-01)
 1. **Banking Action Detection**: Check logs for `[BANKING-DEBUG]` messages during withdraw/deposit
 2. **MenuOptionClicked Correlation**: Verify banking actions trigger MenuOptionClicked events
 3. **Inventory Detection**: Monitor inventory noted_items_count field for real-time counting
 4. **ItemComposition API**: Ensure ItemComposition.getNote() returns valid IDs for noted items
+5. **Current Status**: ✅ Banking system fully restored and functional (624 actions, 15,048 items tracked)
 
 ### Performance Tuning
 

@@ -1,42 +1,52 @@
+# Build artifacts
+/RunelitePluginClone/*/target/
+/RunelitePluginClone/**/target/
+*.jar
+*.war
+*.ear
+*.class
+
 # IDE files
 .idea/
-*.iml
 .vscode/
-.settings/
-.project
-.classpath
-
-# Logs
-logs/
-Logs/
-*.log
-
-# Database
-*.db
-*.sqlite
+*.iml
+*.ipr
+*.iws
 
 # OS files
 .DS_Store
 Thumbs.db
 desktop.ini
 
+# Logs (keep directory structure but exclude large log files)
+/Logs/archived/
+*.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
 # Temporary files
 *.tmp
 *.temp
 *.swp
+*.swo
 *~
 
-# Include our RuneLiteAI plugin (override default plugin ignoring)
-!RunelitePluginClone/runelite-client/src/main/java/net/runelite/client/plugins/runeliteai/
+# Maven
+.m2/
+dependency-reduced-pom.xml
 
-
-# Credentials (keep these secure)
-*.key
-*.pem
-credentials.txt
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Keep important files
+!*.md
+!*.txt
+!*.sql
+!*.json
+!*.xml
+!*.yml
+!*.yaml
+!*.bat
+!*.sh
+!*.java
+!*.rs2asm

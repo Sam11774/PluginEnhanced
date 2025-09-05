@@ -7,6 +7,7 @@ package net.runelite.client.plugins.runeliteai;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.widgets.Widget;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.runeliteai.TickDataCollection.TickDataCollectionBuilder;
 
@@ -155,6 +156,10 @@ public class PlayerDataCollector
             return PlayerLocation.builder().build();
         }
         
+        // Calculate local coordinates within the current chunk (0-63 range)
+        int localX = worldLocation.getX() & 63;
+        int localY = worldLocation.getY() & 63;
+        
         return PlayerLocation.builder()
             .worldX(worldLocation.getX())
             .worldY(worldLocation.getY())
@@ -164,6 +169,8 @@ public class PlayerDataCollector
             .regionId(worldLocation.getRegionID())
             .chunkX(worldLocation.getX() >> 6)
             .chunkY(worldLocation.getY() >> 6)
+            .localX(localX)
+            .localY(localY)
             .locationName(getLocationName(worldLocation))
             .areaType(getAreaType(worldLocation))
             .inWilderness(isInWilderness(worldLocation))
@@ -199,6 +206,11 @@ public class PlayerDataCollector
             currentLevels.put(skillName, currentLevel);
             realLevels.put(skillName, realLevel);
             experience.put(skillName, xp);
+            
+            // Debug log to check if levels are actually varying
+            if (skill == Skill.ATTACK || skill == Skill.STRENGTH || skill == Skill.DEFENCE) {
+                log.debug("[STATS-DEBUG] {} - current: {}, real: {}", skillName, currentLevel, realLevel);
+            }
             
             totalLevel += realLevel;
             totalXp += xp;
@@ -437,7 +449,7 @@ public class PlayerDataCollector
             log.debug("[INVENTORY-DEBUG] Inventory container is NULL - no inventory available");
             return PlayerInventory.builder()
                 .inventoryItems(new Item[0])
-                .usedSlots(0).freeSlots(28).totalValue(0L)
+                .usedSlots(0).freeSlots(28).totalQuantity(0).totalValue(0L)
                 .itemCounts(new HashMap<>())
                 .itemsAdded(0).itemsRemoved(0)
                 .quantityGained(0).quantityLost(0)
@@ -447,6 +459,7 @@ public class PlayerDataCollector
         
         Item[] items = inventory.getItems();
         int usedSlots = 0;
+        int totalQuantity = 0;  // Track total quantity of all items
         long totalValue = 0;
         Map<Integer, Integer> itemCounts = new HashMap<>();
         
@@ -465,6 +478,7 @@ public class PlayerDataCollector
         for (Item item : items) {
             if (item.getId() > 0) {
                 usedSlots++;
+                totalQuantity += item.getQuantity();  // Add to total quantity
                 itemCounts.put(item.getId(), itemCounts.getOrDefault(item.getId(), 0) + item.getQuantity());
                 
                 // Calculate value using ItemManager
@@ -620,6 +634,7 @@ public class PlayerDataCollector
             .inventoryItems(items)
             .usedSlots(usedSlots)
             .freeSlots(28 - usedSlots)
+            .totalQuantity(totalQuantity)  // Add total quantity
             .totalValue(totalValue)
             .itemCounts(itemCounts)
             // Most valuable item tracking
@@ -647,14 +662,24 @@ public class PlayerDataCollector
     private PlayerActivePrayers collectActivePrayersOptimized()
     {
         Map<String, Boolean> activePrayers = new HashMap<>();
+        int activeCount = 0;
         
         for (Prayer prayer : Prayer.values()) {
-            activePrayers.put(prayer.name(), client.isPrayerActive(prayer));
+            boolean isActive = client.isPrayerActive(prayer);
+            activePrayers.put(prayer.name(), isActive);
+            if (isActive) {
+                activeCount++;
+                log.debug("[PRAYER-DEBUG] Active prayer detected: {}", prayer.name());
+            }
+        }
+        
+        if (activeCount > 0) {
+            log.debug("[PRAYER-DEBUG] Total active prayers: {}", activeCount);
         }
         
         return PlayerActivePrayers.builder()
             .activePrayers(activePrayers)
-            .activePrayerCount(activePrayers.size())
+            .activePrayerCount(activeCount) // Fixed: count only active prayers
             .prayerDrainRate(calculatePrayerDrainRate())
             .build();
     }
@@ -674,8 +699,128 @@ public class PlayerDataCollector
     // Helper methods
     private String getLocationName(WorldPoint location)
     {
-        // Simplified implementation - could be enhanced with more location data
-        return "Region_" + location.getRegionID();
+        if (location == null) {
+            return "Unknown";
+        }
+        
+        int regionId = location.getRegionID();
+        int x = location.getX();
+        int y = location.getY();
+        
+        // Use comprehensive region mapping for friendly names
+        return getRegionName(regionId, x, y);
+    }
+    
+    /**
+     * Get friendly region name based on region ID and coordinates
+     */
+    private String getRegionName(int regionId, int x, int y)
+    {
+        // Major cities and areas based on region IDs and coordinates
+        switch (regionId) {
+            case 12850: return "Lumbridge";
+            case 12849: return "Lumbridge Swamp";
+            case 12851: return "Al Kharid";
+            case 12342: return "Varrock";
+            case 12853: return "Draynor Village";
+            case 11828: return "Falador";
+            case 12084: return "Barbarian Village";
+            case 12340: return "Grand Exchange";
+            case 12341: return "Grand Exchange";
+            case 11573: return "Camelot";
+            case 10806: return "Catherby";
+            case 10549: return "White Wolf Mountain";
+            case 11317: return "Taverly";
+            case 12336: return "Edgeville";
+            case 12848: return "Karamja";
+            case 11570: return "Seers Village";
+            case 10293: return "Fishing Guild";
+            case 12339: return "Wilderness";
+            case 12597: return "East Ardougne";
+            case 12596: return "West Ardougne";
+            case 10790: return "Tree Gnome Stronghold";
+            case 9780: return "Tree Gnome Village";
+            case 10033: return "Yanille";
+            case 11318: return "Burthorpe";
+            case 12852: return "Port Sarim";
+            case 12854: return "Rimmington";
+            case 11062: return "Castle Wars";
+            case 12589: return "Clock Tower";
+            case 12845: return "Crafting Guild";
+            case 12855: return "Mudskipper Point";
+            
+            // Wilderness regions
+            case 12188:
+            case 12189:
+            case 12190:
+            case 12191:
+            case 12444:
+            case 12445:
+            case 12446:
+            case 12447:
+            case 12700:
+            case 12701:
+            case 12702:
+            case 12703:
+            case 12956:
+            case 12957:
+            case 12958:
+            case 12959:
+                return "Wilderness";
+                
+            // Morytania regions
+            case 13878:
+            case 13877:
+            case 14134:
+            case 14133:
+                return "Morytania";
+                
+            // Desert regions
+            case 13104:
+            case 13105:
+            case 13360:
+            case 13361:
+                return "Kharidian Desert";
+                
+            // Default based on coordinate ranges for major areas
+            default:
+                // Lumbridge area
+                if (x >= 3200 && x <= 3230 && y >= 3200 && y <= 3230) {
+                    return "Lumbridge";
+                }
+                // Varrock area
+                else if (x >= 3210 && x <= 3260 && y >= 3380 && y <= 3430) {
+                    return "Varrock";
+                }
+                // Falador area  
+                else if (x >= 2940 && x <= 3000 && y >= 3310 && y <= 3390) {
+                    return "Falador";
+                }
+                // Al Kharid area
+                else if (x >= 3270 && x <= 3320 && y >= 3160 && y <= 3200) {
+                    return "Al Kharid";
+                }
+                // Draynor area
+                else if (x >= 3080 && x <= 3120 && y >= 3220 && y <= 3270) {
+                    return "Draynor Village";
+                }
+                // Edgeville area
+                else if (x >= 3080 && x <= 3130 && y >= 3480 && y <= 3520) {
+                    return "Edgeville";
+                }
+                // Wilderness check (y > 3520)
+                else if (y > 3520) {
+                    return "Wilderness";
+                }
+                // Karamja check (y < 2950)
+                else if (y < 2950) {
+                    return "Karamja";
+                }
+                // Fallback with region ID
+                else {
+                    return "Region_" + regionId;
+                }
+        }
     }
     
     private String getAreaType(WorldPoint location)
@@ -709,8 +854,44 @@ public class PlayerDataCollector
     
     private String getWeaponType()
     {
-        int weaponType = client.getVarbitValue(Varbits.EQUIPPED_WEAPON_TYPE);
-        return "WEAPON_TYPE_" + weaponType;
+        try {
+            int weaponTypeId = client.getVarbitValue(Varbits.EQUIPPED_WEAPON_TYPE);
+            
+            switch (weaponTypeId) {
+                case 0: return "unarmed";
+                case 1: return "axe";
+                case 2: return "hammer";  
+                case 3: return "bow";
+                case 4: return "crossbow";
+                case 5: return "mace";
+                case 6: return "sword";
+                case 7: return "dagger";
+                case 8: return "thrown";
+                case 9: return "staff";
+                case 10: return "2h_sword";
+                case 11: return "pickaxe";
+                case 12: return "halberd";
+                case 13: return "spear";
+                case 14: return "claw";
+                case 15: return "whip";
+                case 16: return "banner";
+                case 17: return "2h_crossbow";
+                case 18: return "chinchompa";
+                case 19: return "fixed_device";
+                case 20: return "magic_staff";
+                case 21: return "trident";
+                case 22: return "ballista";
+                case 23: return "blaster";
+                case 24: return "2h_axe";
+                case 25: return "bulwark";
+                case 26: return "gunpowder";
+                case 27: return "scythe";
+                default: return "weapon_type_" + weaponTypeId;
+            }
+        } catch (Exception e) {
+            log.warn("Error getting weapon type", e);
+            return "error";
+        }
     }
     
     private String getAttackStyle()
@@ -745,20 +926,93 @@ public class PlayerDataCollector
     
     private String getSelectedSpellbook()
     {
-        // Simplified spellbook detection
-        return "NORMAL";
+        try {
+            int spellbook = client.getVarbitValue(Varbits.SPELLBOOK);
+            switch (spellbook) {
+                case 0: return "NORMAL";
+                case 1: return "ANCIENT";
+                case 2: return "LUNAR";
+                case 3: return "ARCEUUS";
+                default: return "NORMAL";
+            }
+        } catch (Exception e) {
+            log.warn("Error getting spellbook", e);
+            return "NORMAL";
+        }
     }
     
     private String getSelectedSpell()
     {
-        // Simplified spell detection
+        try {
+            // Check if a spell is selected for casting
+            Widget spellWidget = client.getSelectedWidget();
+            if (spellWidget != null && spellWidget.getName() != null) {
+                String spellName = spellWidget.getName();
+                if (spellName.contains("<col=")) {
+                    // Extract spell name from colored text
+                    spellName = spellName.replaceAll("<[^>]+>", "").trim();
+                }
+                log.debug("[SPELL-DEBUG] Selected spell: {}", spellName);
+                return spellName;
+            }
+        } catch (Exception e) {
+            log.warn("Error getting selected spell", e);
+        }
         return null;
     }
     
     private String getAutocastSpell()
     {
-        // Simplified autocast detection
+        try {
+            // Check autocast varbit (different for each spellbook)
+            int spellbook = client.getVarbitValue(Varbits.SPELLBOOK);
+            
+            // Get autocast spell ID based on spellbook
+            // Note: Need to find the correct var for autocast spell
+            int autocastId = -1;
+            // Autocast is typically stored in a varbit, not VarPlayer
+            // This would need proper research to find the correct varbit
+            // For now, we'll skip autocast detection
+            
+            if (autocastId > 0) {
+                // Map autocast ID to spell name (simplified - would need full mapping)
+                String spellName = mapAutocastIdToSpell(autocastId);
+                log.debug("[SPELL-DEBUG] Autocast spell ID: {}, Name: {}", autocastId, spellName);
+                return spellName;
+            }
+            
+            // Check defensive casting mode
+            boolean defensiveCasting = client.getVarbitValue(Varbits.DEFENSIVE_CASTING_MODE) == 1;
+            if (defensiveCasting) {
+                log.debug("[SPELL-DEBUG] Defensive casting mode enabled");
+            }
+        } catch (Exception e) {
+            log.warn("Error getting autocast spell", e);
+        }
         return null;
+    }
+    
+    private String mapAutocastIdToSpell(int autocastId) {
+        // Common autocast spell IDs (simplified mapping)
+        switch (autocastId) {
+            case 3: return "Wind Strike";
+            case 5: return "Water Strike";
+            case 7: return "Earth Strike";
+            case 9: return "Fire Strike";
+            case 11: return "Wind Bolt";
+            case 13: return "Water Bolt";
+            case 15: return "Earth Bolt";
+            case 17: return "Fire Bolt";
+            case 19: return "Wind Blast";
+            case 21: return "Water Blast";
+            case 23: return "Earth Blast";
+            case 25: return "Fire Blast";
+            case 27: return "Wind Wave";
+            case 29: return "Water Wave";
+            case 31: return "Earth Wave";
+            case 33: return "Fire Wave";
+            default: return "Spell_" + autocastId;
+        }
     }
     
     // =============== CRITICAL MISSING UTILITY METHODS - FULLY RESTORED ===============

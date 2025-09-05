@@ -9,6 +9,8 @@ import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.game.ItemManager;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Modular Data Collection Manager using delegation pattern
@@ -47,6 +49,9 @@ public class DataCollectionManager
     private final InterfaceDataCollector interfaceCollector;
     private final SystemMetricsCollector systemCollector;
     
+    // Item container tracking for banking events
+    private final Queue<ItemContainerChanged> recentItemChanges = new ConcurrentLinkedQueue<>();
+    
     /**
      * Constructor - initializes all modular collectors
      */
@@ -69,6 +74,9 @@ public class DataCollectionManager
         this.socialCollector = new SocialDataCollector(client);
         this.interfaceCollector = new InterfaceDataCollector(client, itemManager);
         this.systemCollector = new SystemMetricsCollector(client);
+        
+        // Set reference to DataCollectionManager for banking data collection
+        this.interfaceCollector.setDataCollectionManager(this);
         
         // Initialize orchestrator with all collectors
         this.orchestrator = new DataCollectionOrchestrator(
@@ -232,8 +240,23 @@ public class DataCollectionManager
      */
     public void recordItemContainerChange(net.runelite.api.events.ItemContainerChanged itemContainerChanged)
     {
-        // TODO: Forward to appropriate collector when migrated
-        log.debug("recordItemContainerChange - placeholder for backward compatibility");
+        if (itemContainerChanged != null) {
+            recentItemChanges.offer(itemContainerChanged);
+            // Keep only last 50 item changes to prevent excessive memory usage
+            while (recentItemChanges.size() > 50) {
+                recentItemChanges.poll();
+            }
+            
+            log.debug("[BANK-DEBUG] Recorded item container change - containerId: {}, queue size: {}", 
+                itemContainerChanged.getContainerId(), recentItemChanges.size());
+        }
+    }
+    
+    /**
+     * Get recent item changes for banking data collection
+     */
+    public Queue<ItemContainerChanged> getRecentItemChanges() {
+        return recentItemChanges;
     }
     
     /**
@@ -664,7 +687,16 @@ public class DataCollectionManager
     {
         try {
             int widgetId = menuEntry.getParam1();
-            // Basic widget ID to name mapping
+            int groupId = widgetId >> 16; // Extract group ID from packed widget ID
+            int childId = widgetId & 0xFFFF; // Extract child ID from packed widget ID
+            
+            // Enhanced widget ID to name mapping
+            String widgetName = getWidgetNameByGroupId(groupId);
+            if (widgetName != null) {
+                return widgetName;
+            }
+            
+            // Fallback to basic widget ID mapping
             switch (widgetId) {
                 case 149: return "inventory";
                 case 213: return "bank";
@@ -673,10 +705,84 @@ public class DataCollectionManager
                 case 465: return "grandexchange";
                 default:
                     String cleanedTarget = cleanTargetName(menuEntry.getTarget());
-                    return cleanedTarget != null ? cleanedTarget : "widget_" + widgetId;
+                    if (cleanedTarget != null && !cleanedTarget.isEmpty()) {
+                        return cleanedTarget;
+                    }
+                    return "widget_" + groupId + "_" + childId;
             }
         } catch (Exception e) {
-            return cleanTargetName(menuEntry.getTarget());
+            String cleanedTarget = cleanTargetName(menuEntry.getTarget());
+            return cleanedTarget != null ? cleanedTarget : "widget_error";
+        }
+    }
+    
+    /**
+     * Get widget name by group ID using RuneLite's standard widget groups
+     */
+    private String getWidgetNameByGroupId(int groupId)
+    {
+        switch (groupId) {
+            case 149: return "inventory";
+            case 15: return "bank";
+            case 300: return "shop";
+            case 335: return "trade";
+            case 465: return "grandexchange";
+            case 164: return "chatbox";
+            case 548: return "fixed_viewport";
+            case 161: return "resizable_viewport";
+            case 160: return "resizable_viewport_bottom_line";
+            case 165: return "combat_tab";
+            case 320: return "skills_tab";
+            case 274: return "quest_tab";
+            case 541: return "equipment_tab";
+            case 218: return "prayer_tab";
+            case 259: return "magic_tab";
+            case 182: return "clan_chat";
+            case 429: return "friends_list";
+            case 432: return "ignore_list";
+            case 589: return "logout";
+            case 116: return "options";
+            case 593: return "emotes";
+            case 187: return "music";
+            case 84: return "world_map";
+            case 122: return "minimap";
+            case 163: return "private_messages";
+            case 162: return "channel_messages";
+            case 229: return "quest_journal";
+            case 261: return "achievement_diary";
+            case 275: return "pest_control";
+            case 76: return "barbarian_assault";
+            case 407: return "clan_wars";
+            case 413: return "duel_arena";
+            case 443: return "castle_wars";
+            case 58: return "thermonuclear_smoke_devil";
+            case 25: return "tutorial_island";
+            case 17: return "login_screen";
+            case 378: return "welcome_screen";
+            case 71: return "character_creation";
+            case 156: return "level_up";
+            case 193: return "quest_completed";
+            case 233: return "skill_guide";
+            case 214: return "price_checker";
+            case 464: return "grand_exchange_collect";
+            case 383: return "grand_exchange_inventory";
+            case 108: return "slayer_reward";
+            case 310: return "smithing";
+            case 311: return "fletching";
+            case 270: return "crafting";
+            case 312: return "cooking";
+            case 251: return "herblore";
+            case 367: return "farming";
+            case 206: return "construction";
+            case 308: return "hunter";
+            case 134: return "diary";
+            case 400: return "barrows";
+            case 129: return "fossil_island";
+            case 621: return "theatre_of_blood";
+            case 633: return "chambers_of_xeric";
+            case 629: return "inferno";
+            case 628: return "chambers_of_xeric_reward";
+            default: return null;
         }
     }
     

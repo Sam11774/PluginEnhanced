@@ -404,18 +404,112 @@ public class WorldDataCollector
      */
     private GroundItemsData collectRealGroundItems()
     {
-        // Use ground object tracker if available
-        if (groundObjectTracker != null) {
-            // Would call groundObjectTracker method here in full implementation
+        log.debug("[GROUND-ITEMS] Starting ground items collection");
+        
+        Player localPlayer = client.getLocalPlayer();
+        if (localPlayer == null) {
+            log.debug("[GROUND-ITEMS] Local player is null, returning empty data");
+            return GroundItemsData.builder().build();
+        }
+
+        WorldPoint playerLocation = localPlayer.getWorldLocation();
+        if (playerLocation == null) {
+            log.debug("[GROUND-ITEMS] Player location is null, returning empty data");
+            return GroundItemsData.builder().build();
+        }
+
+        List<GroundItemData> groundItems = new ArrayList<>();
+        Set<Integer> uniqueItemTypes = new HashSet<>();
+        int totalItems = 0;
+        int totalQuantity = 0;
+        long totalValue = 0L;
+        int scanRadius = 15;
+        
+        // Scan tiles within radius for ground items
+        for (int dx = -scanRadius; dx <= scanRadius; dx++) {
+            for (int dy = -scanRadius; dy <= scanRadius; dy++) {
+                WorldPoint tileLocation = new WorldPoint(
+                    playerLocation.getX() + dx, 
+                    playerLocation.getY() + dy, 
+                    playerLocation.getPlane()
+                );
+                
+                Tile tile = client.getScene().getTiles()[playerLocation.getPlane()][tileLocation.getX() - client.getBaseX()][tileLocation.getY() - client.getBaseY()];
+                if (tile == null) {
+                    continue;
+                }
+                
+                List<TileItem> tileItems = tile.getGroundItems();
+                if (tileItems != null && !tileItems.isEmpty()) {
+                    for (TileItem tileItem : tileItems) {
+                        if (tileItem == null) continue;
+                        
+                        int itemId = tileItem.getId();
+                        int quantity = tileItem.getQuantity();
+                        
+                        // Get item name and value (simplified - would need ItemManager injection for full implementation)
+                        String itemName = "Item_" + itemId; // Fallback name format
+                        long itemValue = (long) quantity * 1; // Simplified pricing, would need ItemManager for real prices
+                        
+                        // Calculate distance from player
+                        double distance = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+                        
+                        // Create ground item data
+                        GroundItemData groundItemData = GroundItemData.builder()
+                            .itemId(itemId)
+                            .itemName(itemName)
+                            .quantity(quantity)
+                            .itemValue((int) itemValue) // itemValue field is Integer, not Long
+                            .worldX(tileLocation.getX())
+                            .worldY(tileLocation.getY())
+                            .plane(tileLocation.getPlane())
+                            .build();
+                        
+                        groundItems.add(groundItemData);
+                        uniqueItemTypes.add(itemId);
+                        totalItems++;
+                        totalQuantity += quantity;
+                        totalValue += itemValue;
+                        
+                        log.debug("[GROUND-ITEMS] Found item: {} x{} at distance {} (value: {})", 
+                            itemName, quantity, distance, itemValue);
+                    }
+                }
+            }
         }
         
-        // Simplified fallback implementation
-        return GroundItemsData.builder()
-            .totalItems(estimateNearbyGroundItems())
-            .totalValue(0L)
-            .uniqueItemTypes(0)
-            .scanRadius(15)
-            .build();
+        // Use distance analytics manager for advanced calculations
+        DistanceAnalyticsManager.GroundItemDistanceAnalytics analytics = null;
+        if (distanceAnalyticsManager != null) {
+            analytics = distanceAnalyticsManager.analyzeGroundItemDistances(groundItems, playerLocation, localPlayer.getName());
+        }
+        
+        // Build final ground items data
+        GroundItemsData.GroundItemsDataBuilder builder = GroundItemsData.builder()
+            .totalItems(totalItems)
+            .totalQuantity(totalQuantity)
+            .totalValue(totalValue)
+            .uniqueItemTypes(uniqueItemTypes.size())
+            .scanRadius(scanRadius)
+            .groundItems(groundItems);
+            
+        // Add analytics data if available
+        if (analytics != null) {
+            builder.closestItemDistance(analytics.getClosestItemDistance())
+                   .closestItemName(analytics.getClosestItemName())
+                   .closestValuableItemDistance(analytics.getClosestValuableItemDistance())
+                   .closestValuableItemName(analytics.getClosestValuableItemName())
+                   .myDropsCount(analytics.getMyDropsCount())
+                   .myDropsTotalValue(analytics.getMyDropsTotalValue())
+                   .otherPlayerDropsCount(analytics.getOtherPlayerDropsCount())
+                   .shortestDespawnTimeMs(analytics.getShortestDespawnTimeMs())
+                   .nextDespawnItemName(analytics.getNextDespawnItemName());
+        }
+        
+        log.debug("[GROUND-ITEMS] Collection complete: {} items, {} types, value: {}", 
+            totalItems, uniqueItemTypes.size(), totalValue);
+        
+        return builder.build();
     }
     
     /**
@@ -588,23 +682,108 @@ public class WorldDataCollector
     
     private Integer estimateNearbyGameObjects()
     {
-        // Simplified estimation - in full implementation would scan scene
         try {
             Scene scene = client.getScene();
-            if (scene != null) {
-                // Rough estimate based on scene complexity
-                return 50; // Default estimate
+            Player localPlayer = client.getLocalPlayer();
+            
+            if (scene == null || localPlayer == null) {
+                return 0;
             }
+
+            WorldPoint playerLocation = localPlayer.getWorldLocation();
+            if (playerLocation == null) {
+                return 0;
+            }
+
+            int gameObjectCount = 0;
+            int scanRadius = 10; // Smaller radius for quick estimation
+            
+            // Scan tiles within radius for game objects
+            for (int dx = -scanRadius; dx <= scanRadius; dx++) {
+                for (int dy = -scanRadius; dy <= scanRadius; dy++) {
+                    int tileX = playerLocation.getX() + dx;
+                    int tileY = playerLocation.getY() + dy;
+                    
+                    // Bounds check
+                    int sceneX = tileX - client.getBaseX();
+                    int sceneY = tileY - client.getBaseY();
+                    
+                    if (sceneX < 0 || sceneX >= 104 || sceneY < 0 || sceneY >= 104) {
+                        continue;
+                    }
+                    
+                    try {
+                        Tile tile = scene.getTiles()[playerLocation.getPlane()][sceneX][sceneY];
+                        if (tile != null && tile.getGameObjects() != null) {
+                            // Count non-null game objects on this tile
+                            for (net.runelite.api.GameObject obj : tile.getGameObjects()) {
+                                if (obj != null && obj.getId() > 0) {
+                                    gameObjectCount++;
+                                }
+                            }
+                        }
+                    } catch (Exception tileException) {
+                        // Skip problematic tiles
+                        continue;
+                    }
+                }
+            }
+            
+            log.debug("[OBJECT-COUNT] Estimated {} game objects within {} tile radius", 
+                gameObjectCount, scanRadius);
+            return gameObjectCount;
+            
         } catch (Exception e) {
             log.debug("Error estimating game objects: {}", e.getMessage());
+            return 0;
         }
-        return 0;
     }
     
     private Integer estimateNearbyGroundItems()
     {
-        // Simplified estimation - in full implementation would scan ground items
-        return 0;
+        Player localPlayer = client.getLocalPlayer();
+        if (localPlayer == null) {
+            return 0;
+        }
+
+        WorldPoint playerLocation = localPlayer.getWorldLocation();
+        if (playerLocation == null) {
+            return 0;
+        }
+
+        int totalItems = 0;
+        int scanRadius = 10; // Smaller radius for quick estimation
+        
+        try {
+            // Scan tiles within radius for ground items
+            for (int dx = -scanRadius; dx <= scanRadius; dx++) {
+                for (int dy = -scanRadius; dy <= scanRadius; dy++) {
+                    int tileX = playerLocation.getX() + dx;
+                    int tileY = playerLocation.getY() + dy;
+                    
+                    // Bounds check
+                    int sceneX = tileX - client.getBaseX();
+                    int sceneY = tileY - client.getBaseY();
+                    
+                    if (sceneX < 0 || sceneX >= 104 || sceneY < 0 || sceneY >= 104) {
+                        continue;
+                    }
+                    
+                    Tile tile = client.getScene().getTiles()[playerLocation.getPlane()][sceneX][sceneY];
+                    if (tile != null) {
+                        List<TileItem> tileItems = tile.getGroundItems();
+                        if (tileItems != null) {
+                            totalItems += tileItems.size();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("[GROUND-ITEMS] Error estimating nearby ground items: {}", e.getMessage());
+            return 0;
+        }
+        
+        return totalItems;
     }
     
     // =============== MISSING UTILITY METHODS - FULLY RESTORED ===============
